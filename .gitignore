@@ -1,0 +1,10 @@
+bin/
+*.exe
+*.exe~
+*.test
+*.out
+*.coverprofile
+coverage/
+dist/
+.DS_Store
+.vscode/
