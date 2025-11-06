@@ -1,4 +1,4 @@
-package sharenote
+package snip00
 
 import (
 	"math"
@@ -64,20 +64,20 @@ func TestHashrateRequirements(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
- if !roughlyEqual(mean, 2.480651469e9) {
+	if !roughlyEqual(mean, 2.480651469e9) {
 		t.Fatalf("mean hashrate mismatch: %f", mean)
 	}
 	q95, err := RequiredHashrateQuantile(note, 5, 0.95)
 	if err != nil {
 		t.Fatal(err)
 	}
- if !roughlyEqual(q95, 7.431367665e9) {
+	if !roughlyEqual(q95, 7.431367665e9) {
 		t.Fatalf("quantile mismatch: %f", q95)
 	}
 }
 
 func TestNoteFromHashrate(t *testing.T) {
- note, err := NoteFromHashrate(HashrateValue{Value: 2.480651469e9, Unit: HashrateUnitHps}, 5)
+	note, err := NoteFromHashrate(HashrateValue{Value: 2.480651469e9, Unit: HashrateUnitHps}, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -138,12 +138,12 @@ func TestNBitsConversion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
- if !roughlyEqual(note.Bits, 57.12) {
-  t.Fatalf("unexpected bits: %f", note.Bits)
- }
- if note.Label() != "57Z12" {
-  t.Fatalf("unexpected label: %s", note.Label())
- }
+	if !roughlyEqual(note.Bits, 57.12) {
+		t.Fatalf("unexpected bits: %f", note.Bits)
+	}
+	if note.Label() != "57Z12" {
+		t.Fatalf("unexpected label: %s", note.Label())
+	}
 }
 
 func TestReliabilityLevels(t *testing.T) {
@@ -185,7 +185,7 @@ func TestTargetDeterministic(t *testing.T) {
 		t.Fatal("harder note should yield smaller target")
 	}
 
- if FormatProbabilityDisplay(note.Bits, 5) != "1 / 2^57.12000" {
+	if FormatProbabilityDisplay(note.Bits, 5) != "1 / 2^57.12000" {
 		t.Fatalf("unexpected probability display")
 	}
 }
@@ -208,18 +208,18 @@ func TestEstimateNote(t *testing.T) {
 	if estimate.Label != "33Z53" {
 		t.Fatalf("unexpected label: %s", estimate.Label)
 	}
-    if !roughlyEqual(estimate.RequiredHashratePrimary, 7.431367665e9) {
-        t.Fatalf("primary mismatch: %f", estimate.RequiredHashratePrimary)
-    }
-    if estimate.RequiredHashrateHuman.Unit != HashrateUnitGHps {
-        t.Fatalf("unexpected human unit: %s", estimate.RequiredHashrateHuman.Unit)
-    }
-    if !strings.HasSuffix(estimate.RequiredHashrateHuman.Display, " GH/s") {
-        t.Fatalf("unexpected human display: %s", estimate.RequiredHashrateHuman.Display)
-    }
-    if !strings.HasPrefix(estimate.RequiredHashrateHuman.Display, "7.43") {
-        t.Fatalf("unexpected human display: %s", estimate.RequiredHashrateHuman.Display)
-    }
+	if !roughlyEqual(estimate.RequiredHashratePrimary, 7.431367665e9) {
+		t.Fatalf("primary mismatch: %f", estimate.RequiredHashratePrimary)
+	}
+	if estimate.RequiredHashrateHuman.Unit != HashrateUnitGHps {
+		t.Fatalf("unexpected human unit: %s", estimate.RequiredHashrateHuman.Unit)
+	}
+	if !strings.HasSuffix(estimate.RequiredHashrateHuman.Display, " GH/s") {
+		t.Fatalf("unexpected human display: %s", estimate.RequiredHashrateHuman.Display)
+	}
+	if !strings.HasPrefix(estimate.RequiredHashrateHuman.Display, "7.43") {
+		t.Fatalf("unexpected human display: %s", estimate.RequiredHashrateHuman.Display)
+	}
 }
 
 func TestPlanSharenoteFromHashrate(t *testing.T) {

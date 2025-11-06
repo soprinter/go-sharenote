@@ -1,6 +1,5 @@
-// Package sharenote implements SNIP-0000 — Core Z Arithmetic and Hashrate Conversion.
-// Specification reference: ../sharenote-snip.md
-package sharenote
+// Package sharenote implements SNIP-00 — Core Z Arithmetic and Hashrate Conversion.
+package snip00
 
 import (
 	"errors"
@@ -31,11 +30,11 @@ var SNIP0000Implementation = ImplementationMeta{
 }
 
 const (
-    // CentBitStep is the per-cent fractional bit increment.
-    CentBitStep            = 0.01
-    ContinuousExponentStep = CentBitStep // backwards compatibility alias
-    MinCents               = 0
-    MaxCents               = 99
+	// CentBitStep is the per-cent fractional bit increment.
+	CentBitStep            = 0.01
+	ContinuousExponentStep = CentBitStep // backwards compatibility alias
+	MinCents               = 0
+	MaxCents               = 99
 )
 
 // ReliabilityID enumerates the supported reliability presets.
@@ -87,9 +86,9 @@ type ReliabilityLevel struct {
 
 // Sharenote describes a note label using integer bits and cent-Z fraction.
 type Sharenote struct {
-	Z     int
-	Cents int
-	Bits  float64
+	Z             int
+	Cents         int
+	Bits          float64
 	labelOverride string
 }
 
@@ -357,9 +356,9 @@ func NoteFromComponents(z, cents int) (Sharenote, error) {
 	if z < 0 {
 		return Sharenote{}, errors.New("z must be non-negative")
 	}
-    c := clampCents(cents)
-    bits := float64(z) + float64(c)*CentBitStep
-    return Sharenote{Z: z, Cents: c, Bits: bits}, nil
+	c := clampCents(cents)
+	bits := float64(z) + float64(c)*CentBitStep
+	return Sharenote{Z: z, Cents: c, Bits: bits}, nil
 }
 
 // NoteFromBits converts fractional bit difficulty to a Sharenote.
@@ -371,10 +370,10 @@ func NoteFromBits(bits float64) (Sharenote, error) {
 		return Sharenote{}, errors.New("bits must be non-negative")
 	}
 	z := int(math.Floor(bits))
-    fractional := bits - float64(z)
-    rawCents := int((fractional / CentBitStep) + 1e-9)
-    cents := clampCents(rawCents)
-    return NoteFromComponents(z, cents)
+	fractional := bits - float64(z)
+	rawCents := int((fractional / CentBitStep) + 1e-9)
+	cents := clampCents(rawCents)
+	return NoteFromComponents(z, cents)
 }
 
 // EnsureNote accepts either a Sharenote or label string and returns the struct.
