@@ -8,4 +8,5 @@ coverage/
 dist/
 .DS_Store
 .vscode/
-debug.test.go
+.gocache/
+debug_test.go

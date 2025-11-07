@@ -24,8 +24,8 @@ import (
 )
 
 func main() {
-	note := snip00.MustParseLabel("33Z53")
-	fmt.Println(note.Label(), note.Bits) // 33Z53 33.53
+	note := snip00.MustNoteFromZBits(33.537812)
+	fmt.Println(note.Label(), note.ZBits) // 33Z53 33.537812
 
 	// Probability & planning
 	p, _ := snip00.ProbabilityPerHash(note)
@@ -42,7 +42,7 @@ func main() {
 		5,
 		snip00.WithPlanReliability(snip00.ReliabilityOften95),
 	)
-	fmt.Println(planned.snip00.Label())                  // "32Z95"
+	fmt.Println(planned.Sharenote.Label())                  // "32Z95"
 	fmt.Println(planned.Bill.RequiredHashrateHuman.Display) // "5.00 GH/s"
 
 	// Compact difficulty
@@ -61,7 +61,7 @@ func main() {
 	fmt.Println(diff.Label()) // 33Z52
 
 	scaled, _ := snip00.ScaleNote("20Z10", 1.5)
-	fmt.Printf("%s %.9f\n", scaled.Label(), scaled.Bits) // 20Z68 20.680000000
+	fmt.Printf("%s %.9f\n", scaled.Label(), scaled.ZBits) // 20Z68 20.680000000
 
 	ratio, _ := snip00.DivideNotes("33Z53", "20Z10")
 	fmt.Printf("ratio: %.4f\n", ratio) // 11036.5375
@@ -79,21 +79,21 @@ func main() {
 
 | Theme | Functions | Notes |
 |-------|-----------|-------|
-| Conversions | `ParseLabel`, `NoteFromComponents`, `NoteFromBits`, `BitsFromComponents`, `NBitsToSharenote` | Strict validation, cent clamping (`0–99`). |
+| Conversions | `EnsureNote`, `NoteFromZBits`, `NBitsToSharenote` | Strict validation, cent clamping (`0–99`) for labels while keeping precise metadata. |
 | Probability | `ProbabilityPerHash`, `ExpectedHashesForNote` | Deterministic doubles. |
-| Planning | `ParseHashrate`, `NoteFromHashrate`, `PlanSharenoteFromHashrate`, `RequiredHashrate*`, `MaxBitsForHashrate` | Accept raw confidence, enum presets (e.g. `ReliabilityOften95`), or explicit multipliers. |
+| Planning | `ParseHashrate`, `NoteFromHashrate`, `PlanSharenoteFromHashrate`, `RequiredHashrate*`, `MaxZBitsForHashrate` | Accept raw confidence, enum presets (e.g. `ReliabilityOften95`), or explicit multipliers. |
 | Reports | `EstimateNote`, `EstimateNotes`, `FormatProbabilityDisplay`, `HumaniseHashrate` | Produce `BillEstimate` structs with machine and human fields. |
 | Arithmetic | `CombineNotesSerial`, `NoteDifference`, `ScaleNote`, `DivideNotes` | Compose serial probability, compute gaps, apply scalars, compare ratios. |
 | Utilities | `ReliabilityLevels`, `CompareNotes`, `TargetFor` | Enumerate presets, sort by rarity, or emit `*big.Int` targets. |
 
-All functions return `(value, error)` to make failure modes explicit. Use `MustParseLabel` for test fixtures or pre-validated data.
+All functions return `(value, error)` to make failure modes explicit. Use `MustNoteFromZBits` for test fixtures or pre-validated data.
 
 ---
 
 ## Recipes
 
 ```go
-// Sequential proofs (add bit difficulty)
+// Sequential proofs (add Z-bit difficulty)
 serial, _ := snip00.CombineNotesSerial("33Z53", "20Z10")
 fmt.Println(serial.Label()) // 33Z53
 

@@ -1,4 +1,3 @@
-// Package sharenote implements SNIP-00 — Core Z Arithmetic and Hashrate Conversion.
 package snip00
 
 import (
@@ -11,30 +10,13 @@ import (
 	"strings"
 )
 
-// ImplementationMeta summarises a SNIP implementation.
-type ImplementationMeta struct {
-	ID            string
-	Title         string
-	Status        string
-	Summary       string
-	Specification string
-}
-
-// SNIP0000Implementation exposes metadata about this module's specification coverage.
-var SNIP0000Implementation = ImplementationMeta{
-	ID:            "SNIP-0000",
-	Title:         "Core Z Arithmetic and Hashrate Conversion",
-	Status:        "stable",
-	Summary:       "Implements canonical note encoding, probability maths, and hashrate planning for Sharenote proofs.",
-	Specification: "../sharenote-snip.md",
-}
-
 const (
-	// CentBitStep is the per-cent fractional bit increment.
-	CentBitStep            = 0.01
-	ContinuousExponentStep = CentBitStep // backwards compatibility alias
-	MinCents               = 0
-	MaxCents               = 99
+	// CentZBitStep is the per-cent-Z fractional Z-bit increment.
+	CentZBitStep = 0.01
+	// centZUnitsPerZ holds the number of cent-Z increments per whole Z.
+	centZUnitsPerZ = int(1 / CentZBitStep)
+	MinCentZ       = 0
+	MaxCentZ       = 99
 )
 
 // ReliabilityID enumerates the supported reliability presets.
@@ -84,11 +66,11 @@ type ReliabilityLevel struct {
 	Multiplier float64
 }
 
-// Sharenote describes a note label using integer bits and cent-Z fraction.
+// Sharenote describes a note label using integer Z value, cent-Z fraction, and derived Z-bit difficulty.
 type Sharenote struct {
 	Z             int
 	Cents         int
-	Bits          float64
+	ZBits         float64
 	labelOverride string
 }
 
@@ -100,11 +82,94 @@ type HumanHashrate struct {
 	Exponent int
 }
 
+// HashrateMeasurement exposes a numeric value plus helpers for human display.
+type HashrateMeasurement struct {
+	Value float64
+}
+
+// Float64 returns the raw H/s value.
+func (h HashrateMeasurement) Float64() float64 {
+	return h.Value
+}
+
+// Human converts the measurement into a HumanHashrate with optional formatting overrides.
+func (h HashrateMeasurement) Human(opts ...HumanHashrateOption) HumanHashrate {
+	return HumaniseHashrate(h.Value, opts...)
+}
+
+// String returns the formatted human-readable representation.
+func (h HashrateMeasurement) String() string {
+	return h.Human().String()
+}
+
+// HashesMeasurement exposes an expected hash count with helper methods.
+type HashesMeasurement struct {
+	Value float64
+}
+
+// Float64 returns the raw expected hash count.
+func (h HashesMeasurement) Float64() float64 {
+	return h.Value
+}
+
+// String returns a scientific-notation summary for the expected hashes.
+func (h HashesMeasurement) String() string {
+	if !isFinite(h.Value) || h.Value <= 0 {
+		return "0 hashes"
+	}
+	index := 0
+	if h.Value > 0 {
+		index = int(math.Floor(math.Log10(h.Value) / 3))
+		if index < 0 {
+			index = 0
+		}
+		if index >= len(hashCountUnits) {
+			index = len(hashCountUnits) - 1
+		}
+	}
+	unit := hashCountUnits[index]
+	scaled := h.Value / math.Pow(1000, float64(unit.exponent))
+	if !isFinite(scaled) || scaled <= 0 {
+		return "0 hashes"
+	}
+
+	var numeric string
+	switch {
+	case scaled >= 100:
+		numeric = fmt.Sprintf("%.0f", scaled)
+	case scaled >= 10:
+		numeric = fmt.Sprintf("%.1f", scaled)
+	default:
+		numeric = fmt.Sprintf("%.2f", scaled)
+	}
+
+	unitLabel := fmt.Sprintf("%sH/s", unit.prefix)
+	if unit.prefix == "" {
+		unitLabel = "H/s"
+	}
+	return fmt.Sprintf("%s %s", numeric, unitLabel)
+}
+
+// String implements fmt.Stringer and favours the precomputed display value.
+func (h HumanHashrate) String() string {
+	if h.Display != "" {
+		return h.Display
+	}
+	if !isFinite(h.Value) || h.Value <= 0 {
+		return "0 H/s"
+	}
+	unit := string(h.Unit)
+	if unit == "" {
+		unit = string(HashrateUnitHps)
+	}
+	return fmt.Sprintf("%.2f %s", h.Value, unit)
+}
+
 // BillEstimate summarises the metrics required to mint a note within a time window.
 type BillEstimate struct {
 	Sharenote                Sharenote
 	Label                    string
-	Bits                     float64
+	ZBits                    float64
 	SecondsTarget            float64
 	ProbabilityPerHash       float64
 	ProbabilityDisplay       string
@@ -118,6 +183,22 @@ type BillEstimate struct {
 	PrimaryMode              PrimaryMode
 }
 
+// String implements fmt.Stringer with a compact summary for logging.
+func (b BillEstimate) String() string {
+	mode := string(b.PrimaryMode)
+	if mode == "" {
+		mode = string(PrimaryModeMean)
+	}
+	return fmt.Sprintf(
+		"BillEstimate{%s @ %.2fs, p=%s, %s=%s}",
+		b.Sharenote,
+		b.SecondsTarget,
+		b.ProbabilityDisplay,
+		mode,
+		b.RequiredHashrateHuman,
+	)
+}
+
 // SharenotePlan summarises a computed note and its supporting bill estimate for a given rig.
 type SharenotePlan struct {
 	Sharenote          Sharenote
@@ -127,12 +208,95 @@ type SharenotePlan struct {
 	InputHashrateHuman HumanHashrate
 }
 
+// String implements fmt.Stringer for concise plan inspection.
+func (p SharenotePlan) String() string {
+	return fmt.Sprintf(
+		"SharenotePlan{%s -> %s @ %.2fs}",
+		p.Sharenote,
+		p.Bill.RequiredHashrateHuman,
+		p.SecondsTarget,
+	)
+}
+
 // Label returns the canonical Sharenote label (e.g. "33Z53").
 func (n Sharenote) Label() string {
 	if n.labelOverride != "" {
 		return n.labelOverride
 	}
 	return fmt.Sprintf("%dZ%02d", n.Z, clampCents(n.Cents))
+}
+
+// String implements fmt.Stringer by returning the canonical label.
+func (n Sharenote) String() string {
+	return n.Label()
+}
+
+// ProbabilityPerHash returns 2^(-zbits) for the receiver.
+func (n Sharenote) ProbabilityPerHash() (float64, error) {
+	return ProbabilityFromZBits(n.ZBits)
+}
+
+// ExpectedHashes returns the expected hash attempts for the receiver.
+func (n Sharenote) ExpectedHashes() (HashesMeasurement, error) {
+	return ExpectedHashesMeasurement(n)
+}
+
+// RequiredHashrate returns the required H/s to hit the note within the provided window.
+func (n Sharenote) RequiredHashrate(seconds float64, opts ...HashrateOption) (HashrateMeasurement, error) {
+	return RequiredHashrate(n, seconds, opts...)
+}
+
+// RequiredHashrateMean returns the mean H/s requirement for the receiver.
+func (n Sharenote) RequiredHashrateMean(seconds float64) (HashrateMeasurement, error) {
+	return RequiredHashrateMean(n, seconds)
+}
+
+// RequiredHashrateQuantile returns the quantile H/s requirement for the receiver.
+func (n Sharenote) RequiredHashrateQuantile(seconds, confidence float64) (HashrateMeasurement, error) {
+	return RequiredHashrateQuantile(n, seconds, confidence)
+}
+
+// RequiredHashrateMeasurement returns a measurement struct for the required H/s.
+func (n Sharenote) RequiredHashrateMeasurement(seconds float64, opts ...HashrateOption) (HashrateMeasurement, error) {
+	return RequiredHashrateMeasurement(n, seconds, opts...)
+}
+
+// RequiredHashrateMeanMeasurement returns a measurement struct for the mean requirement.
+func (n Sharenote) RequiredHashrateMeanMeasurement(seconds float64) (HashrateMeasurement, error) {
+	return RequiredHashrateMeanMeasurement(n, seconds)
+}
+
+// RequiredHashrateQuantileMeasurement returns a measurement struct for the quantile requirement.
+func (n Sharenote) RequiredHashrateQuantileMeasurement(seconds, confidence float64) (HashrateMeasurement, error) {
+	return RequiredHashrateQuantileMeasurement(n, seconds, confidence)
+}
+
+// Target returns the integer hash target for the receiver.
+func (n Sharenote) Target() (*big.Int, error) {
+	return TargetFor(n)
+}
+
+// CombineSerial returns the serial combination of the receiver with additional notes.
+func (n Sharenote) CombineSerial(others ...any) (Sharenote, error) {
+	inputs := make([]any, 0, len(others)+1)
+	inputs = append(inputs, n)
+	inputs = append(inputs, others...)
+	return CombineNotesSerial(inputs...)
+}
+
+// Difference subtracts the provided note difficulty from the receiver.
+func (n Sharenote) Difference(other any) (Sharenote, error) {
+	return NoteDifference(n, other)
+}
+
+// Scale multiplies the receiver's difficulty by the provided factor.
+func (n Sharenote) Scale(factor float64) (Sharenote, error) {
+	return ScaleNote(n, factor)
+}
+
+// NBits encodes the receiver in compact nBits format.
+func (n Sharenote) NBits() (string, error) {
+	return SharenoteToNBits(n)
 }
 
 var reliabilityLevels = map[ReliabilityID]ReliabilityLevel{
@@ -180,6 +344,21 @@ var hashrateUnits = []struct {
 	{HashrateUnitPHps, 5},
 	{HashrateUnitEHps, 6},
 	{HashrateUnitZHps, 7},
+}
+
+var hashCountUnits = []struct {
+	prefix   string
+	exponent int
+}{
+	{"", 0},
+	{"K", 1},
+	{"M", 2},
+	{"G", 3},
+	{"T", 4},
+	{"P", 5},
+	{"E", 6},
+	{"Z", 7},
+	{"Y", 8},
 }
 
 var (
@@ -306,8 +485,8 @@ func ParseHashrate(input string) (float64, error) {
 	return value * math.Pow(10, float64(exponent*3)), nil
 }
 
-// ParseLabel converts textual labels (33Z53, 33.53Z, 33Z 53CZ) into a Sharenote.
-func ParseLabel(label string) (Sharenote, error) {
+// parseLabel converts textual labels (33Z53, 33.53Z, 33Z 53CZ) into a Sharenote.
+func parseLabel(label string) (Sharenote, error) {
 	cleaned := strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(label), " ", ""))
 
 	if match := reStandard.FindStringSubmatch(cleaned); match != nil {
@@ -316,7 +495,7 @@ func ParseLabel(label string) (Sharenote, error) {
 		if match[2] != "" {
 			cents, _ = strconv.Atoi(match[2])
 		}
-		return NoteFromComponents(z, cents)
+		return noteFromComponents(z, cents)
 	}
 
 	if match := reDotted.FindStringSubmatch(cleaned); match != nil {
@@ -328,55 +507,87 @@ func ParseLabel(label string) (Sharenote, error) {
 			decimals = decimals[:2]
 		}
 		cents, _ := strconv.Atoi(decimals)
-		return NoteFromComponents(z, cents)
+		return noteFromComponents(z, cents)
 	}
 
 	if match := reDecimal.FindStringSubmatch(cleaned); match != nil {
-		bits, err := strconv.ParseFloat(match[1], 64)
+		zbits, err := strconv.ParseFloat(match[1], 64)
 		if err != nil {
-			return Sharenote{}, fmt.Errorf("parse bits: %w", err)
+			return Sharenote{}, fmt.Errorf("parse zbits: %w", err)
 		}
-		return NoteFromBits(bits)
+		return NoteFromZBits(zbits)
 	}
 
 	return Sharenote{}, fmt.Errorf("unrecognised Sharenote label %q", label)
 }
 
-// MustParseLabel wraps ParseLabel and panics on failure. Convenient for tests.
-func MustParseLabel(label string) Sharenote {
-	note, err := ParseLabel(label)
+// noteFromComponents normalises (Z, cents) into a Sharenote struct using cent-Z precision.
+func noteFromComponents(z, cents int) (Sharenote, error) {
+	if z < 0 {
+		return Sharenote{}, errors.New("z must be non-negative")
+	}
+	c := clampCents(cents)
+	zbits := float64(z) + float64(c)*CentZBitStep
+	return Sharenote{Z: z, Cents: c, ZBits: zbits}, nil
+}
+
+// NoteFromComponents constructs a canonical Sharenote from integer Z and cent-Z precision.
+// It preserves the legacy cent-Z precision behaviour for callers that rely on (Z, CZ) inputs.
+func NoteFromComponents(z, cents int) (Sharenote, error) {
+	return noteFromComponents(z, cents)
+}
+
+func labelComponentsFromZBits(zbits float64) (int, int) {
+	z := int(math.Floor(zbits))
+	if z < 0 {
+		z = 0
+	}
+	fractional := zbits - float64(z)
+	rawCents := int(math.Floor((fractional / CentZBitStep) + 1e-9))
+	return z, clampCents(rawCents)
+}
+
+// NoteFromZBits converts fractional Z-bit difficulty to a Sharenote while preserving precision.
+func NoteFromZBits(zbits float64) (Sharenote, error) {
+	if !isFinite(zbits) {
+		return Sharenote{}, errors.New("zbits must be finite")
+	}
+	if zbits < 0 {
+		return Sharenote{}, errors.New("zbits must be non-negative")
+	}
+	z, cents := labelComponentsFromZBits(zbits)
+	return Sharenote{Z: z, Cents: cents, ZBits: zbits}, nil
+}
+
+// MustNoteFromZBits wraps NoteFromZBits and panics on failure. Intended for tests and fixtures.
+func MustNoteFromZBits(zbits float64) Sharenote {
+	note, err := NoteFromZBits(zbits)
 	if err != nil {
 		panic(err)
 	}
 	return note
 }
 
-// NoteFromComponents normalises (Z, cents) into a Sharenote struct.
-func NoteFromComponents(z, cents int) (Sharenote, error) {
-	if z < 0 {
-		return Sharenote{}, errors.New("z must be non-negative")
+// NoteFromCentZBits converts cent-Z units (e.g. 3353 => 33.53Z) into a Sharenote.
+func NoteFromCentZBits(centZ int) (Sharenote, error) {
+	if centZ < 0 {
+		return Sharenote{}, errors.New("cent-z value must be non-negative")
 	}
-	c := clampCents(cents)
-	bits := float64(z) + float64(c)*CentBitStep
-	return Sharenote{Z: z, Cents: c, Bits: bits}, nil
+	z := centZ / centZUnitsPerZ
+	cents := centZ % centZUnitsPerZ
+	return noteFromComponents(z, cents)
 }
 
-// NoteFromBits converts fractional bit difficulty to a Sharenote.
-func NoteFromBits(bits float64) (Sharenote, error) {
-	if !isFinite(bits) {
-		return Sharenote{}, errors.New("bits must be finite")
+// MustNoteFromCentZBits wraps NoteFromCentZBits and panics on failure. Intended for tests and fixtures.
+func MustNoteFromCentZBits(centZ int) Sharenote {
+	note, err := NoteFromCentZBits(centZ)
+	if err != nil {
+		panic(err)
 	}
-	if bits < 0 {
-		return Sharenote{}, errors.New("bits must be non-negative")
-	}
-	z := int(math.Floor(bits))
-	fractional := bits - float64(z)
-	rawCents := int((fractional / CentBitStep) + 1e-9)
-	cents := clampCents(rawCents)
-	return NoteFromComponents(z, cents)
+	return note
 }
 
-// EnsureNote accepts either a Sharenote or label string and returns the struct.
+// EnsureNote accepts a Sharenote, label string, or raw Z-bit value and returns the struct.
 func EnsureNote(input any) (Sharenote, error) {
 	switch v := input.(type) {
 	case Sharenote:
@@ -387,18 +598,42 @@ func EnsureNote(input any) (Sharenote, error) {
 		}
 		return *v, nil
 	case string:
-		return ParseLabel(v)
+		return parseLabel(v)
+	case float64:
+		return NoteFromZBits(v)
+	case float32:
+		return NoteFromZBits(float64(v))
+	case int:
+		return NoteFromZBits(float64(v))
+	case int8:
+		return NoteFromZBits(float64(v))
+	case int16:
+		return NoteFromZBits(float64(v))
+	case int32:
+		return NoteFromZBits(float64(v))
+	case int64:
+		return NoteFromZBits(float64(v))
+	case uint:
+		return NoteFromZBits(float64(v))
+	case uint8:
+		return NoteFromZBits(float64(v))
+	case uint16:
+		return NoteFromZBits(float64(v))
+	case uint32:
+		return NoteFromZBits(float64(v))
+	case uint64:
+		return NoteFromZBits(float64(v))
 	default:
 		return Sharenote{}, fmt.Errorf("unsupported note input %T", v)
 	}
 }
 
-// ProbabilityFromBits returns 2^(-bits).
-func ProbabilityFromBits(bits float64) (float64, error) {
-	if !isFinite(bits) {
-		return 0, errors.New("bits must be finite")
+// ProbabilityFromZBits returns 2^(-zbits).
+func ProbabilityFromZBits(zbits float64) (float64, error) {
+	if !isFinite(zbits) {
+		return 0, errors.New("zbits must be finite")
 	}
-	return math.Exp2(-bits), nil
+	return math.Exp2(-zbits), nil
 }
 
 // ProbabilityPerHash returns the per-hash success probability for the note.
@@ -407,11 +642,7 @@ func ProbabilityPerHash(note any) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return math.Exp2(-resolved.Bits), nil
-}
-
-func difficultyFromBits(bits float64) float64 {
-	return math.Exp2(bits)
+	return math.Exp2(-resolved.ZBits), nil
 }
 
 func difficultyFromNote(note any) (float64, error) {
@@ -419,36 +650,48 @@ func difficultyFromNote(note any) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return math.Exp2(resolved.Bits), nil
+	return math.Exp2(resolved.ZBits), nil
 }
 
-func bitsFromDifficulty(difficulty float64) (float64, error) {
+func zBitsFromDifficulty(difficulty float64) (float64, error) {
 	if !isFinite(difficulty) || difficulty <= 0 {
 		return 0, errors.New("difficulty must be > 0")
 	}
 	return math.Log2(difficulty), nil
 }
 
-// ExpectedHashes returns 1 / probability.
-func ExpectedHashes(bits float64) (float64, error) {
-	p, err := ProbabilityFromBits(bits)
+func expectedHashesValueFromZBits(zbits float64) (float64, error) {
+	p, err := ProbabilityFromZBits(zbits)
 	if err != nil {
 		return 0, err
 	}
 	return 1 / p, nil
 }
 
-// ExpectedHashesForNote returns expected hashes for converting the given note.
-func ExpectedHashesForNote(note any) (float64, error) {
-	resolved, err := EnsureNote(note)
+// ExpectedHashesForZBits returns 1 / probability.
+func ExpectedHashesForZBits(zbits float64) (HashesMeasurement, error) {
+	value, err := expectedHashesValueFromZBits(zbits)
 	if err != nil {
-		return 0, err
+		return HashesMeasurement{}, err
 	}
-	return ExpectedHashes(resolved.Bits)
+	return HashesMeasurement{Value: value}, nil
 }
 
-// RequiredHashrate computes multiplier * expected_hashes / seconds.
-func RequiredHashrate(note any, seconds float64, opts ...HashrateOption) (float64, error) {
+// ExpectedHashesForNote returns expected hashes for converting the given note.
+func ExpectedHashesForNote(note any) (HashesMeasurement, error) {
+	resolved, err := EnsureNote(note)
+	if err != nil {
+		return HashesMeasurement{}, err
+	}
+	return ExpectedHashesForZBits(resolved.ZBits)
+}
+
+// ExpectedHashesMeasurement returns an expected hash count with helpers.
+func ExpectedHashesMeasurement(note any) (HashesMeasurement, error) {
+	return ExpectedHashesForNote(note)
+}
+
+func requiredHashrateValue(note any, seconds float64, opts ...HashrateOption) (float64, error) {
 	if !isFinite(seconds) || seconds <= 0 {
 		return 0, errors.New("seconds must be > 0")
 	}
@@ -463,29 +706,53 @@ func RequiredHashrate(note any, seconds float64, opts ...HashrateOption) (float6
 	if err != nil {
 		return 0, err
 	}
-	expected, err := ExpectedHashes(resolved.Bits)
+	expected, err := expectedHashesValueFromZBits(resolved.ZBits)
 	if err != nil {
 		return 0, err
 	}
 	return expected * cfg.multiplier / seconds, nil
 }
 
+// RequiredHashrate computes multiplier * expected_hashes / seconds and returns a measurement.
+func RequiredHashrate(note any, seconds float64, opts ...HashrateOption) (HashrateMeasurement, error) {
+	value, err := requiredHashrateValue(note, seconds, opts...)
+	if err != nil {
+		return HashrateMeasurement{}, err
+	}
+	return HashrateMeasurement{Value: value}, nil
+}
+
 // RequiredHashrateMean returns the mean hashrate.
-func RequiredHashrateMean(note any, seconds float64) (float64, error) {
+func RequiredHashrateMean(note any, seconds float64) (HashrateMeasurement, error) {
 	return RequiredHashrate(note, seconds)
 }
 
 // RequiredHashrateQuantile returns the quantile hashrate for the provided confidence.
-func RequiredHashrateQuantile(note any, seconds, confidence float64) (float64, error) {
+func RequiredHashrateQuantile(note any, seconds, confidence float64) (HashrateMeasurement, error) {
 	if confidence <= 0 || confidence >= 1 {
-		return 0, errors.New("confidence must be in (0,1)")
+		return HashrateMeasurement{}, errors.New("confidence must be in (0,1)")
 	}
 	multiplier := -math.Log(1 - confidence)
 	return RequiredHashrate(note, seconds, WithMultiplier(multiplier))
 }
 
-// MaxBitsForHashrate computes the maximum bit difficulty achievable with the provided parameters.
-func MaxBitsForHashrate(hashrate, seconds, multiplier float64) (float64, error) {
+// RequiredHashrateMeasurement returns a structured measurement for the required H/s.
+func RequiredHashrateMeasurement(note any, seconds float64, opts ...HashrateOption) (HashrateMeasurement, error) {
+	return RequiredHashrate(note, seconds, opts...)
+}
+
+// RequiredHashrateMeanMeasurement returns a structured measurement for the mean requirement.
+func RequiredHashrateMeanMeasurement(note any, seconds float64) (HashrateMeasurement, error) {
+	return RequiredHashrateMean(note, seconds)
+}
+
+// RequiredHashrateQuantileMeasurement returns a structured measurement for the provided confidence.
+func RequiredHashrateQuantileMeasurement(note any, seconds, confidence float64) (HashrateMeasurement, error) {
+	return RequiredHashrateQuantile(note, seconds, confidence)
+}
+
+// MaxZBitsForHashrate computes the maximum bit difficulty achievable with the provided parameters.
+func MaxZBitsForHashrate(hashrate, seconds, multiplier float64) (float64, error) {
 	if !isFinite(hashrate) || hashrate <= 0 {
 		return 0, errors.New("hashrate must be > 0")
 	}
@@ -508,11 +775,11 @@ func NoteFromHashrate(hashrate HashrateValue, seconds float64, opts ...HashrateO
 	for _, opt := range opts {
 		opt(&cfg)
 	}
-	bits, err := MaxBitsForHashrate(numeric, seconds, cfg.multiplier)
+	zbits, err := MaxZBitsForHashrate(numeric, seconds, cfg.multiplier)
 	if err != nil {
 		return Sharenote{}, err
 	}
-	return NoteFromBits(bits)
+	return NoteFromZBits(zbits)
 }
 
 // TargetFor returns the integer hash target for the note.
@@ -521,12 +788,12 @@ func TargetFor(note any) (*big.Int, error) {
 	if err != nil {
 		return nil, err
 	}
-	integerBits := int(math.Floor(resolved.Bits))
+	integerBits := int(math.Floor(resolved.ZBits))
 	baseExponent := 256 - integerBits
 	if baseExponent < 0 {
 		return nil, errors.New("z too large; target underflow")
 	}
-	fractional := resolved.Bits - float64(integerBits)
+	fractional := resolved.ZBits - float64(integerBits)
 	scale := math.Exp2(-fractional)
 
 	const precisionBits = 48
@@ -578,8 +845,47 @@ func NBitsToSharenote(hex string) (Sharenote, error) {
 		return Sharenote{}, errors.New("mantissa must be non-zero")
 	}
 	log2Target := math.Log2(float64(mantissa)) + 8*float64(exponent-3)
-	bits := 256 - log2Target
-	return NoteFromBits(bits)
+	zbits := 256 - log2Target
+	return NoteFromZBits(zbits)
+}
+
+func targetToCompact(target *big.Int) (uint32, error) {
+	if target == nil || target.Sign() <= 0 {
+		return 0, errors.New("target must be positive")
+	}
+	bytes := target.Bytes()
+	exponent := len(bytes)
+	var mantissa uint32
+	tmp := new(big.Int).Set(target)
+	if exponent <= 3 {
+		mantissa = uint32(tmp.Uint64()) << (uint(8 * (3 - exponent)))
+	} else {
+		mantissa = uint32(new(big.Int).Rsh(tmp, uint(8*(exponent-3))).Uint64())
+	}
+	if mantissa&0x00800000 != 0 {
+		mantissa >>= 8
+		exponent++
+	}
+	if exponent > 255 {
+		return 0, errors.New("target exponent overflow")
+	}
+	return uint32(exponent)<<24 | mantissa, nil
+}
+
+// SharenoteToNBits encodes a note into compact nBits hex representation.
+func SharenoteToNBits(note any) (string, error) {
+	target, err := TargetFor(note)
+	if err != nil {
+		return "", err
+	}
+	if target.Sign() <= 0 {
+		return "", errors.New("target must be positive")
+	}
+	compact, err := targetToCompact(target)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%08x", compact), nil
 }
 
 // ReliabilityLevels returns all predefined reliability presets.
@@ -594,15 +900,38 @@ func ReliabilityLevels() []ReliabilityLevel {
 }
 
 // FormatProbabilityDisplay returns strings like "1 / 2^33.00000000".
-func FormatProbabilityDisplay(bits float64, precision int) string {
+func FormatProbabilityDisplay(zbits float64, precision int) string {
 	if precision < 0 {
 		precision = 0
 	}
-	return fmt.Sprintf("1 / 2^%.*f", precision, bits)
+	return fmt.Sprintf("1 / 2^%.*f", precision, zbits)
+}
+
+// HumanHashrateOption customises display formatting when humanising H/s values.
+type HumanHashrateOption func(*humanHashrateOptions)
+
+type humanHashrateOptions struct {
+	precision *int
+}
+
+// WithHumanHashratePrecision forces a fixed number of decimal places in the display string.
+func WithHumanHashratePrecision(precision int) HumanHashrateOption {
+	if precision < 0 {
+		precision = 0
+	}
+	return func(cfg *humanHashrateOptions) {
+		cfg.precision = &precision
+	}
 }
 
 // HumaniseHashrate renders a hashrate into an appropriate SI-prefixed unit.
-func HumaniseHashrate(hashrate float64) HumanHashrate {
+func HumaniseHashrate(hashrate float64, opts ...HumanHashrateOption) HumanHashrate {
+	cfg := humanHashrateOptions{}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&cfg)
+		}
+	}
 	if !isFinite(hashrate) || hashrate <= 0 {
 		return HumanHashrate{Value: 0, Unit: HashrateUnitHps, Display: "0 H/s", Exponent: 0}
 	}
@@ -622,6 +951,8 @@ func HumaniseHashrate(hashrate float64) HumanHashrate {
 
 	var display string
 	switch {
+	case cfg.precision != nil:
+		display = fmt.Sprintf("%.*f %s", *cfg.precision, scaled, unit.unit)
 	case scaled >= 100:
 		display = fmt.Sprintf("%.0f %s", scaled, unit.unit)
 	case scaled >= 10:
@@ -732,7 +1063,7 @@ func EstimateNote(note any, seconds float64, opts ...EstimateOption) (BillEstima
 	if err != nil {
 		return BillEstimate{}, err
 	}
-	mean, err := RequiredHashrateMean(resolved, seconds)
+	meanRate, err := RequiredHashrateMean(resolved, seconds)
 	if err != nil {
 		return BillEstimate{}, err
 	}
@@ -753,7 +1084,7 @@ func EstimateNote(note any, seconds float64, opts ...EstimateOption) (BillEstima
 		primaryMode = PrimaryModeMean
 	}
 
-	primary := mean
+	primary := meanRate
 	if primaryMode == PrimaryModeQuantile {
 		primary = quantileRate
 	}
@@ -767,15 +1098,15 @@ func EstimateNote(note any, seconds float64, opts ...EstimateOption) (BillEstima
 	return BillEstimate{
 		Sharenote:                resolved,
 		Label:                    resolved.Label(),
-		Bits:                     resolved.Bits,
+		ZBits:                    resolved.ZBits,
 		SecondsTarget:            seconds,
 		ProbabilityPerHash:       probability,
-		ProbabilityDisplay:       FormatProbabilityDisplay(resolved.Bits, cfg.probabilityPrecision),
-		ExpectedHashes:           expectation,
-		RequiredHashrateMean:     mean,
-		RequiredHashrateQuantile: quantileRate,
-		RequiredHashratePrimary:  primary,
-		RequiredHashrateHuman:    HumaniseHashrate(primary),
+		ProbabilityDisplay:       FormatProbabilityDisplay(resolved.ZBits, cfg.probabilityPrecision),
+		ExpectedHashes:           expectation.Float64(),
+		RequiredHashrateMean:     meanRate.Float64(),
+		RequiredHashrateQuantile: quantileRate.Float64(),
+		RequiredHashratePrimary:  primary.Float64(),
+		RequiredHashrateHuman:    primary.Human(),
 		Multiplier:               cfg.multiplier,
 		Quantile:                 quantileCopy,
 		PrimaryMode:              primaryMode,
@@ -870,7 +1201,7 @@ func PlanSharenoteFromHashrate(hashrate HashrateValue, seconds float64, opts ...
 	}, nil
 }
 
-// CombineNotesSerial adds bit difficulties (serial probability) and returns a new Sharenote.
+// CombineNotesSerial adds Z-bit difficulties (serial probability) and returns a new Sharenote.
 func CombineNotesSerial(notes ...any) (Sharenote, error) {
 	if len(notes) == 0 {
 		return Sharenote{}, errors.New("notes slice must not be empty")
@@ -884,16 +1215,16 @@ func CombineNotesSerial(notes ...any) (Sharenote, error) {
 		total += diff
 	}
 	if !isFinite(total) || total <= 0 {
-		return NoteFromBits(0)
+		return NoteFromZBits(0)
 	}
-	bits, err := bitsFromDifficulty(total)
+	zbits, err := zBitsFromDifficulty(total)
 	if err != nil {
 		return Sharenote{}, err
 	}
-	return NoteFromBits(bits)
+	return NoteFromZBits(zbits)
 }
 
-// NoteDifference subtracts subtrahend bits from minuend bits (clamped at zero).
+// NoteDifference subtracts subtrahend Z-bit difficulty from the minuend (clamped at zero).
 func NoteDifference(minuend, subtrahend any) (Sharenote, error) {
 	minDifficulty, err := difficultyFromNote(minuend)
 	if err != nil {
@@ -905,16 +1236,16 @@ func NoteDifference(minuend, subtrahend any) (Sharenote, error) {
 	}
 	diff := minDifficulty - subDifficulty
 	if diff <= 0 {
-		return NoteFromBits(0)
+		return NoteFromZBits(0)
 	}
-	bits, err := bitsFromDifficulty(diff)
+	zbits, err := zBitsFromDifficulty(diff)
 	if err != nil {
 		return Sharenote{}, err
 	}
-	return NoteFromBits(bits)
+	return NoteFromZBits(zbits)
 }
 
-// ScaleNote multiplies a note's bit difficulty by the given factor.
+// ScaleNote multiplies a note's Z-bit difficulty by the given factor.
 func ScaleNote(note any, factor float64) (Sharenote, error) {
 	if !isFinite(factor) {
 		return Sharenote{}, errors.New("factor must be finite")
@@ -923,20 +1254,20 @@ func ScaleNote(note any, factor float64) (Sharenote, error) {
 		return Sharenote{}, errors.New("factor must be >= 0")
 	}
 	if factor == 0 {
-		return NoteFromBits(0)
+		return NoteFromZBits(0)
 	}
 	difficulty, err := difficultyFromNote(note)
 	if err != nil {
 		return Sharenote{}, err
 	}
-	bits, err := bitsFromDifficulty(difficulty * factor)
+	zbits, err := zBitsFromDifficulty(difficulty * factor)
 	if err != nil {
 		return Sharenote{}, err
 	}
-	return NoteFromBits(bits)
+	return NoteFromZBits(zbits)
 }
 
-// DivideNotes returns the ratio of two note bit difficulties.
+// DivideNotes returns the ratio of two note Z-bit difficulties.
 func DivideNotes(numerator, denominator any) (float64, error) {
 	numDifficulty, err := difficultyFromNote(numerator)
 	if err != nil {
@@ -986,11 +1317,11 @@ func WithConfidence(confidence float64) HashrateOption {
 }
 
 func clampCents(value int) int {
-	if value < MinCents {
-		return MinCents
+	if value < MinCentZ {
+		return MinCentZ
 	}
-	if value > MaxCents {
-		return MaxCents
+	if value > MaxCentZ {
+		return MaxCentZ
 	}
 	return value
 }
