@@ -135,6 +135,47 @@ func TestNoteFromHashrate(t *testing.T) {
 	}
 }
 
+func TestHashrateRangeForNote(t *testing.T) {
+	const seconds = 5.0
+	const input = 1e12
+	note, err := NoteFromHashrate(HashrateValue{Value: input, Unit: HashrateUnitHps}, seconds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rng, err := HashrateRangeForNote(note, seconds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rng.Min > input || rng.Max <= input {
+		t.Fatalf("range [%f, %f) does not contain %f", rng.Min, rng.Max, input)
+	}
+	lowNote, err := NoteFromHashrate(HashrateValue{Value: rng.Min, Unit: HashrateUnitHps}, seconds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lowNote.Label() != note.Label() {
+		t.Fatalf("expected min bound to map to %s, got %s", note.Label(), lowNote.Label())
+	}
+}
+
+func TestHashrateRangeReliabilityScaling(t *testing.T) {
+	note := mustParseLabel("33Z53")
+	base, err := HashrateRangeForNote(note, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	often, err := HashrateRangeForNote(note, 5, WithReliability(ReliabilityOften95))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if often.Min <= base.Min {
+		t.Fatalf("expected reliability range min > base min, got %f <= %f", often.Min, base.Min)
+	}
+	if often.Max <= base.Max {
+		t.Fatalf("expected reliability range max > base max, got %f <= %f", often.Max, base.Max)
+	}
+}
+
 func TestParseHashrate(t *testing.T) {
 	value, err := ParseHashrate("5 GH/s")
 	if err != nil {
@@ -220,6 +261,16 @@ func TestHumaniseHashratePrecision(t *testing.T) {
 	expected := fmt.Sprintf("%.5f %s", human.Value, human.Unit)
 	if human.Display != expected {
 		t.Fatalf("precision formatting mismatch: got %s want %s", human.Display, expected)
+	}
+}
+
+func TestHumaniseHashrateTinyInputs(t *testing.T) {
+	human := HumaniseHashrate(0.25, WithHumanHashratePrecision(2))
+	if human.Unit != HashrateUnitHps {
+		t.Fatalf("expected H/s unit for tiny hashrates, got %s", human.Unit)
+	}
+	if human.Display != "0.25 H/s" {
+		t.Fatalf("unexpected display for tiny hashrate: %s", human.Display)
 	}
 }
 

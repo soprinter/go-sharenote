@@ -150,6 +150,17 @@ func (h HashesMeasurement) String() string {
 	return fmt.Sprintf("%s %s", numeric, unitLabel)
 }
 
+// HashrateRange represents the inclusive/exclusive H/s interval that maps to a Sharenote label.
+type HashrateRange struct {
+	Min float64
+	Max float64
+}
+
+// Human renders the min/max bounds into human-readable units.
+func (r HashrateRange) Human(opts ...HumanHashrateOption) (HumanHashrate, HumanHashrate) {
+	return HumaniseHashrate(r.Min, opts...), HumaniseHashrate(r.Max, opts...)
+}
+
 // String implements fmt.Stringer and favours the precomputed display value.
 func (h HumanHashrate) String() string {
 	if h.Display != "" {
@@ -269,6 +280,11 @@ func (n Sharenote) RequiredHashrateMeanMeasurement(seconds float64) (HashrateMea
 // RequiredHashrateQuantileMeasurement returns a measurement struct for the quantile requirement.
 func (n Sharenote) RequiredHashrateQuantileMeasurement(seconds, confidence float64) (HashrateMeasurement, error) {
 	return RequiredHashrateQuantileMeasurement(n, seconds, confidence)
+}
+
+// HashrateRange returns the [min,max) H/s interval that maps to the receiver's label.
+func (n Sharenote) HashrateRange(seconds float64, opts ...HashrateOption) (HashrateRange, error) {
+	return HashrateRangeForNote(n, seconds, opts...)
 }
 
 // Target returns the integer hash target for the receiver.
@@ -751,6 +767,40 @@ func RequiredHashrateQuantileMeasurement(note any, seconds, confidence float64) 
 	return RequiredHashrateQuantile(note, seconds, confidence)
 }
 
+// HashrateRangeForNote returns the [min,max) hashrate interval corresponding to the provided note label.
+func HashrateRangeForNote(note any, seconds float64, opts ...HashrateOption) (HashrateRange, error) {
+	if !isFinite(seconds) || seconds <= 0 {
+		return HashrateRange{}, errors.New("seconds must be > 0")
+	}
+	cfg := hashrateOptions{multiplier: 1}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&cfg)
+		}
+	}
+	if cfg.multiplier <= 0 {
+		return HashrateRange{}, errors.New("multiplier must be > 0")
+	}
+	resolved, err := EnsureNote(note)
+	if err != nil {
+		return HashrateRange{}, err
+	}
+	lowerExpected, err := expectedHashesValueFromZBits(resolved.ZBits)
+	if err != nil {
+		return HashrateRange{}, err
+	}
+	upperExpected, err := expectedHashesValueFromZBits(resolved.ZBits + CentZBitStep)
+	if err != nil {
+		return HashrateRange{}, err
+	}
+	lower := lowerExpected * cfg.multiplier / seconds
+	upper := upperExpected * cfg.multiplier / seconds
+	if upper < lower {
+		upper = lower
+	}
+	return HashrateRange{Min: lower, Max: upper}, nil
+}
+
 // MaxZBitsForHashrate computes the maximum bit difficulty achievable with the provided parameters.
 func MaxZBitsForHashrate(hashrate, seconds, multiplier float64) (float64, error) {
 	if !isFinite(hashrate) || hashrate <= 0 {
@@ -936,10 +986,7 @@ func HumaniseHashrate(hashrate float64, opts ...HumanHashrateOption) HumanHashra
 		return HumanHashrate{Value: 0, Unit: HashrateUnitHps, Display: "0 H/s", Exponent: 0}
 	}
 	logValue := math.Log10(hashrate)
-	index := int(math.Floor(logValue / 3))
-	if index < 0 {
-		index = 0
-	}
+	index := int(math.Max(0, math.Floor(logValue/3)))
 	if index >= len(hashrateUnits) {
 		index = len(hashrateUnits) - 1
 	}
