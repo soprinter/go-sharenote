@@ -1,8 +1,12 @@
 package snip00
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -12,6 +16,40 @@ const tolerance = 1e-6
 
 func roughlyEqual(a, b float64) bool {
 	return math.Abs(a-b) <= tolerance*math.Abs(b)
+}
+
+type vectorNote struct {
+	Label      string  `json:"label"`
+	ZBits      float64 `json:"z_bits"`
+	Difficulty float64 `json:"difficulty"`
+}
+
+type addInputs []vectorNote
+
+type subtractInputs struct {
+	Minuend    vectorNote `json:"minuend"`
+	Subtrahend vectorNote `json:"subtrahend"`
+}
+
+type scaleInputs struct {
+	Note   vectorNote `json:"note"`
+	Factor float64    `json:"factor"`
+}
+
+type divideInputs struct {
+	Numerator   vectorNote `json:"numerator"`
+	Denominator vectorNote `json:"denominator"`
+}
+
+type vectorCase struct {
+	Name      string          `json:"name"`
+	Operation string          `json:"operation"`
+	Inputs    json.RawMessage `json:"inputs"`
+	Expected  json.RawMessage `json:"expected"`
+}
+
+type vectorFile struct {
+	Cases []vectorCase `json:"cases"`
 }
 
 func mustParseLabel(label string) Sharenote {
@@ -664,5 +702,112 @@ func TestArithmeticHelpers(t *testing.T) {
 	expectedRatio := math.Pow(2, noteA.ZBits) / math.Pow(2, noteB.ZBits)
 	if !roughlyEqual(ratio, expectedRatio) {
 		t.Fatalf("unexpected ratio: got %f want %f", ratio, expectedRatio)
+	}
+}
+
+func TestArithmeticVectorsFromJSON(t *testing.T) {
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatalf("runtime.Caller failed")
+	}
+	baseDir := filepath.Dir(file)
+	vectorPath := filepath.Clean(filepath.Join(baseDir, "snip00_tests.json"))
+	data, err := os.ReadFile(vectorPath)
+	if err != nil {
+		t.Fatalf("read vectors: %v", err)
+	}
+	var vf vectorFile
+	if err := json.Unmarshal(data, &vf); err != nil {
+		t.Fatalf("unmarshal vectors: %v", err)
+	}
+
+	for _, tc := range vf.Cases {
+		switch tc.Operation {
+		case "add":
+			var inputs addInputs
+			var expected vectorNote
+			if err := json.Unmarshal(tc.Inputs, &inputs); err != nil {
+				t.Fatalf("case %s inputs: %v", tc.Name, err)
+			}
+			if err := json.Unmarshal(tc.Expected, &expected); err != nil {
+				t.Fatalf("case %s expected: %v", tc.Name, err)
+			}
+			labels := make([]any, len(inputs))
+			for i, in := range inputs {
+				labels[i] = in.Label
+			}
+			result, err := CombineNotesSerial(labels...)
+			if err != nil {
+				t.Fatalf("case %s combine: %v", tc.Name, err)
+			}
+			if result.Label() != expected.Label {
+				t.Fatalf("case %s label: got %s want %s", tc.Name, result.Label(), expected.Label)
+			}
+			if !roughlyEqual(result.ZBits, expected.ZBits) {
+				t.Fatalf("case %s zbits: got %f want %f", tc.Name, result.ZBits, expected.ZBits)
+			}
+			if !roughlyEqual(math.Pow(2, result.ZBits), expected.Difficulty) {
+				t.Fatalf("case %s difficulty mismatch", tc.Name)
+			}
+		case "subtract":
+			var inputs subtractInputs
+			var expected vectorNote
+			if err := json.Unmarshal(tc.Inputs, &inputs); err != nil {
+				t.Fatalf("case %s inputs: %v", tc.Name, err)
+			}
+			if err := json.Unmarshal(tc.Expected, &expected); err != nil {
+				t.Fatalf("case %s expected: %v", tc.Name, err)
+			}
+			result, err := NoteDifference(inputs.Minuend.Label, inputs.Subtrahend.Label)
+			if err != nil {
+				t.Fatalf("case %s difference: %v", tc.Name, err)
+			}
+			if result.Label() != expected.Label {
+				t.Fatalf("case %s label: got %s want %s", tc.Name, result.Label(), expected.Label)
+			}
+			if !roughlyEqual(result.ZBits, expected.ZBits) {
+				t.Fatalf("case %s zbits: got %f want %f", tc.Name, result.ZBits, expected.ZBits)
+			}
+		case "scale":
+			var inputs scaleInputs
+			var expected vectorNote
+			if err := json.Unmarshal(tc.Inputs, &inputs); err != nil {
+				t.Fatalf("case %s inputs: %v", tc.Name, err)
+			}
+			if err := json.Unmarshal(tc.Expected, &expected); err != nil {
+				t.Fatalf("case %s expected: %v", tc.Name, err)
+			}
+			result, err := ScaleNote(inputs.Note.Label, inputs.Factor)
+			if err != nil {
+				t.Fatalf("case %s scale: %v", tc.Name, err)
+			}
+			if result.Label() != expected.Label {
+				t.Fatalf("case %s label: got %s want %s", tc.Name, result.Label(), expected.Label)
+			}
+			if !roughlyEqual(result.ZBits, expected.ZBits) {
+				t.Fatalf("case %s zbits: got %f want %f", tc.Name, result.ZBits, expected.ZBits)
+			}
+		case "divide":
+			var inputs divideInputs
+			var expected struct {
+				Ratio float64 `json:"ratio"`
+			}
+			if err := json.Unmarshal(tc.Inputs, &inputs); err != nil {
+				t.Fatalf("case %s inputs: %v", tc.Name, err)
+			}
+			if err := json.Unmarshal(tc.Expected, &expected); err != nil {
+				t.Fatalf("case %s expected: %v", tc.Name, err)
+			}
+			ratio, err := DivideNotes(inputs.Numerator.Label, inputs.Denominator.Label)
+			if err != nil {
+				t.Fatalf("case %s divide: %v", tc.Name, err)
+			}
+			expectedRatio := math.Exp2(inputs.Numerator.ZBits - inputs.Denominator.ZBits)
+			if !roughlyEqual(ratio, expected.Ratio) || !roughlyEqual(ratio, expectedRatio) {
+				t.Fatalf("case %s ratio mismatch: got %f want %f (calc %f)", tc.Name, ratio, expected.Ratio, expectedRatio)
+			}
+		default:
+			t.Fatalf("unknown operation %s", tc.Operation)
+		}
 	}
 }
