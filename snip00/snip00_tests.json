@@ -1,0 +1,1036 @@
+{
+  "generated_at_utc": "2025-12-13T15:24:21Z",
+  "spec_reference": "sharenote-overview.md Appendix C (Arithmetic in Sharenote Space)",
+  "cent_step": 0.01,
+  "cases": [
+    {
+      "name": "add_1Z00_plus_1Z00",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "1Z00",
+          "z_bits": 1.0,
+          "difficulty": 2.0,
+          "expected_hashes": 2.0,
+          "probability_per_hash": 0.5
+        },
+        {
+          "label": "1Z00",
+          "z_bits": 1.0,
+          "difficulty": 2.0,
+          "expected_hashes": 2.0,
+          "probability_per_hash": 0.5
+        }
+      ],
+      "expected": {
+        "label": "2Z00",
+        "z_bits": 2.0,
+        "difficulty": 4.0,
+        "expected_hashes": 4.0,
+        "probability_per_hash": 0.25
+      },
+      "notes": "Sum difficulties, then convert back to label."
+    },
+    {
+      "name": "add_1Z00_plus_2Z00",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "1Z00",
+          "z_bits": 1.0,
+          "difficulty": 2.0,
+          "expected_hashes": 2.0,
+          "probability_per_hash": 0.5
+        },
+        {
+          "label": "2Z00",
+          "z_bits": 2.0,
+          "difficulty": 4.0,
+          "expected_hashes": 4.0,
+          "probability_per_hash": 0.25
+        }
+      ],
+      "expected": {
+        "label": "2Z58",
+        "z_bits": 2.5849625,
+        "difficulty": 6.0,
+        "expected_hashes": 6.0,
+        "probability_per_hash": 0.16666666666666669
+      },
+      "notes": "Sum difficulties, then convert back to label."
+    },
+    {
+      "name": "add_10Z50_plus_10Z50",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "10Z50",
+          "z_bits": 10.5,
+          "difficulty": 1448.1546878700494,
+          "expected_hashes": 1448.1546878700494,
+          "probability_per_hash": 0.0006905339660024879
+        },
+        {
+          "label": "10Z50",
+          "z_bits": 10.5,
+          "difficulty": 1448.1546878700494,
+          "expected_hashes": 1448.1546878700494,
+          "probability_per_hash": 0.0006905339660024879
+        }
+      ],
+      "expected": {
+        "label": "11Z50",
+        "z_bits": 11.5,
+        "difficulty": 2896.309375740099,
+        "expected_hashes": 2896.309375740099,
+        "probability_per_hash": 0.00034526698300124393
+      },
+      "notes": "Sum difficulties, then convert back to label."
+    },
+    {
+      "name": "add_33Z53_plus_33Z54",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "33Z53",
+          "z_bits": 33.53,
+          "difficulty": 12403257345.017431,
+          "expected_hashes": 12403257345.017431,
+          "probability_per_hash": 8.062398224783385e-11
+        },
+        {
+          "label": "33Z54",
+          "z_bits": 33.54,
+          "difficulty": 12489528822.347048,
+          "expected_hashes": 12489528822.347048,
+          "probability_per_hash": 8.00670717225727e-11
+        }
+      ],
+      "expected": {
+        "label": "34Z53",
+        "z_bits": 34.53500866,
+        "difficulty": 24892786167.36448,
+        "expected_hashes": 24892786167.36448,
+        "probability_per_hash": 4.017228096833306e-11
+      },
+      "notes": "Sum difficulties, then convert back to label."
+    },
+    {
+      "name": "add_0Z00_plus_15Z00",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "0Z00",
+          "z_bits": 0.0,
+          "difficulty": 1.0,
+          "expected_hashes": 1.0,
+          "probability_per_hash": 1.0
+        },
+        {
+          "label": "15Z00",
+          "z_bits": 15.0,
+          "difficulty": 32768.0,
+          "expected_hashes": 32768.0,
+          "probability_per_hash": 3.0517578125e-05
+        }
+      ],
+      "expected": {
+        "label": "15Z00",
+        "z_bits": 15.00004403,
+        "difficulty": 32769.0,
+        "expected_hashes": 32769.0,
+        "probability_per_hash": 3.0516646830846216e-05
+      },
+      "notes": "Sum difficulties, then convert back to label."
+    },
+    {
+      "name": "add_60Z99_plus_0Z00",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "60Z99",
+          "z_bits": 60.99,
+          "difficulty": 2.2899153881060746e+18,
+          "expected_hashes": 2.2899153881060746e+18,
+          "probability_per_hash": 4.366973579871316e-19
+        },
+        {
+          "label": "0Z00",
+          "z_bits": 0.0,
+          "difficulty": 1.0,
+          "expected_hashes": 1.0,
+          "probability_per_hash": 1.0
+        }
+      ],
+      "expected": {
+        "label": "60Z99",
+        "z_bits": 60.99,
+        "difficulty": 2.2899153881060746e+18,
+        "expected_hashes": 2.2899153881060746e+18,
+        "probability_per_hash": 4.366973579871316e-19
+      },
+      "notes": "Sum difficulties, then convert back to label."
+    },
+    {
+      "name": "add_20Z10_plus_25Z90",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "20Z10",
+          "z_bits": 20.1,
+          "difficulty": 1123835.9302524573,
+          "expected_hashes": 1123835.9302524573,
+          "probability_per_hash": 8.898096003883424e-07
+        },
+        {
+          "label": "25Z90",
+          "z_bits": 25.9,
+          "difficulty": 62614784.1365567,
+          "expected_hashes": 62614784.1365567,
+          "probability_per_hash": 1.5970669128541563e-08
+        }
+      ],
+      "expected": {
+        "label": "25Z92",
+        "z_bits": 25.92566445,
+        "difficulty": 63738620.066809155,
+        "expected_hashes": 63738620.066809155,
+        "probability_per_hash": 1.56890751470902e-08
+      },
+      "notes": "Sum difficulties, then convert back to label."
+    },
+    {
+      "name": "add_three_small_notes",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "1Z00",
+          "z_bits": 1.0,
+          "difficulty": 2.0,
+          "expected_hashes": 2.0,
+          "probability_per_hash": 0.5
+        },
+        {
+          "label": "1Z00",
+          "z_bits": 1.0,
+          "difficulty": 2.0,
+          "expected_hashes": 2.0,
+          "probability_per_hash": 0.5
+        },
+        {
+          "label": "1Z00",
+          "z_bits": 1.0,
+          "difficulty": 2.0,
+          "expected_hashes": 2.0,
+          "probability_per_hash": 0.5
+        }
+      ],
+      "expected": {
+        "label": "2Z58",
+        "z_bits": 2.5849625,
+        "difficulty": 6.0,
+        "expected_hashes": 6.0,
+        "probability_per_hash": 0.16666666666666669
+      },
+      "notes": "Sum difficulties, then convert back to label."
+    },
+    {
+      "name": "add_four_mixed",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "5Z50",
+          "z_bits": 5.5,
+          "difficulty": 45.254833995939045,
+          "expected_hashes": 45.254833995939045,
+          "probability_per_hash": 0.02209708691207961
+        },
+        {
+          "label": "10Z25",
+          "z_bits": 10.25,
+          "difficulty": 1217.7480857627863,
+          "expected_hashes": 1217.7480857627863,
+          "probability_per_hash": 0.0008211879055212056
+        },
+        {
+          "label": "15Z75",
+          "z_bits": 15.75,
+          "difficulty": 55108.98747006743,
+          "expected_hashes": 55108.98747006743,
+          "probability_per_hash": 1.81458605194507e-05
+        },
+        {
+          "label": "20Z99",
+          "z_bits": 20.99,
+          "difficulty": 2082665.9129907684,
+          "expected_hashes": 2082665.9129907684,
+          "probability_per_hash": 4.80153822925911e-07
+        }
+      ],
+      "expected": {
+        "label": "21Z02",
+        "z_bits": 21.02853062,
+        "difficulty": 2139037.9033805947,
+        "expected_hashes": 2139037.9033805947,
+        "probability_per_hash": 4.6749989722929713e-07
+      },
+      "notes": "Sum difficulties, then convert back to label."
+    },
+    {
+      "name": "add_many_close_cents",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "33Z53",
+          "z_bits": 33.53,
+          "difficulty": 12403257345.017431,
+          "expected_hashes": 12403257345.017431,
+          "probability_per_hash": 8.062398224783385e-11
+        },
+        {
+          "label": "33Z54",
+          "z_bits": 33.54,
+          "difficulty": 12489528822.347048,
+          "expected_hashes": 12489528822.347048,
+          "probability_per_hash": 8.00670717225727e-11
+        },
+        {
+          "label": "33Z55",
+          "z_bits": 33.55,
+          "difficulty": 12576400365.255697,
+          "expected_hashes": 12576400365.255697,
+          "probability_per_hash": 7.951400805930596e-11
+        },
+        {
+          "label": "33Z56",
+          "z_bits": 33.56,
+          "difficulty": 12663876147.529615,
+          "expected_hashes": 12663876147.529615,
+          "probability_per_hash": 7.896476468581647e-11
+        }
+      ],
+      "expected": {
+        "label": "35Z54",
+        "z_bits": 35.54504332,
+        "difficulty": 50133062680.149796,
+        "expected_hashes": 50133062680.149796,
+        "probability_per_hash": 1.9946916197401e-11
+      },
+      "notes": "Sum difficulties, then convert back to label."
+    },
+    {
+      "name": "add_span_range",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "5Z00",
+          "z_bits": 5.0,
+          "difficulty": 32.0,
+          "expected_hashes": 32.0,
+          "probability_per_hash": 0.03125
+        },
+        {
+          "label": "15Z00",
+          "z_bits": 15.0,
+          "difficulty": 32768.0,
+          "expected_hashes": 32768.0,
+          "probability_per_hash": 3.0517578125e-05
+        },
+        {
+          "label": "25Z00",
+          "z_bits": 25.0,
+          "difficulty": 33554432.0,
+          "expected_hashes": 33554432.0,
+          "probability_per_hash": 2.9802322387695312e-08
+        },
+        {
+          "label": "35Z00",
+          "z_bits": 35.0,
+          "difficulty": 34359738368.0,
+          "expected_hashes": 34359738368.0,
+          "probability_per_hash": 2.9103830456733704e-11
+        },
+        {
+          "label": "45Z00",
+          "z_bits": 45.0,
+          "difficulty": 35184372088832.0,
+          "expected_hashes": 35184372088832.0,
+          "probability_per_hash": 2.842170943040401e-14
+        }
+      ],
+      "expected": {
+        "label": "45Z00",
+        "z_bits": 45.00140957,
+        "difficulty": 35218765414432.0,
+        "expected_hashes": 35218765414432.0,
+        "probability_per_hash": 2.8393953854788353e-14
+      },
+      "notes": "Sum difficulties, then convert back to label."
+    },
+    {
+      "name": "add_fractional_mix",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "12Z01",
+          "z_bits": 12.01,
+          "difficulty": 4124.48993303232,
+          "expected_hashes": 4124.48993303232,
+          "probability_per_hash": 0.00024245422251880763
+        },
+        {
+          "label": "12Z99",
+          "z_bits": 12.99,
+          "difficulty": 8135.413722620199,
+          "expected_hashes": 8135.413722620199,
+          "probability_per_hash": 0.00012291937866903304
+        },
+        {
+          "label": "13Z50",
+          "z_bits": 13.5,
+          "difficulty": 11585.237502960395,
+          "expected_hashes": 11585.237502960395,
+          "probability_per_hash": 8.631674575031098e-05
+        },
+        {
+          "label": "14Z75",
+          "z_bits": 14.75,
+          "difficulty": 27554.493735033717,
+          "expected_hashes": 27554.493735033717,
+          "probability_per_hash": 3.62917210389014e-05
+        },
+        {
+          "label": "15Z25",
+          "z_bits": 15.25,
+          "difficulty": 38967.93874440916,
+          "expected_hashes": 38967.93874440916,
+          "probability_per_hash": 2.5662122047537674e-05
+        }
+      ],
+      "expected": {
+        "label": "16Z46",
+        "z_bits": 16.46351757,
+        "difficulty": 90367.5736380558,
+        "expected_hashes": 90367.5736380558,
+        "probability_per_hash": 1.1065916232356144e-05
+      },
+      "notes": "Sum difficulties, then convert back to label."
+    },
+    {
+      "name": "add_complex_set_A",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "42Z76",
+          "z_bits": 42.76,
+          "difficulty": 7448050533659.349,
+          "expected_hashes": 7448050533659.349,
+          "probability_per_hash": 1.3426332105035864e-13
+        },
+        {
+          "label": "34Z76",
+          "z_bits": 34.76,
+          "difficulty": 29093947397.10683,
+          "expected_hashes": 29093947397.10683,
+          "probability_per_hash": 3.437141018889181e-11
+        },
+        {
+          "label": "33Z53",
+          "z_bits": 33.53,
+          "difficulty": 12403257345.017431,
+          "expected_hashes": 12403257345.017431,
+          "probability_per_hash": 8.062398224783385e-11
+        },
+        {
+          "label": "35Z14",
+          "z_bits": 35.14,
+          "difficulty": 37861171487.88108,
+          "expected_hashes": 37861171487.88108,
+          "probability_per_hash": 2.641228363258882e-11
+        }
+      ],
+      "expected": {
+        "label": "42Z77",
+        "z_bits": 42.77529048,
+        "difficulty": 7527408909889.354,
+        "expected_hashes": 7527408909889.354,
+        "probability_per_hash": 1.328478380769541e-13
+      },
+      "notes": "Sum difficulties, then convert back to label."
+    },
+    {
+      "name": "add_complex_set_B",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "42Z76",
+          "z_bits": 42.76,
+          "difficulty": 7448050533659.349,
+          "expected_hashes": 7448050533659.349,
+          "probability_per_hash": 1.3426332105035864e-13
+        },
+        {
+          "label": "34Z76",
+          "z_bits": 34.76,
+          "difficulty": 29093947397.10683,
+          "expected_hashes": 29093947397.10683,
+          "probability_per_hash": 3.437141018889181e-11
+        },
+        {
+          "label": "33Z53",
+          "z_bits": 33.53,
+          "difficulty": 12403257345.017431,
+          "expected_hashes": 12403257345.017431,
+          "probability_per_hash": 8.062398224783385e-11
+        },
+        {
+          "label": "35Z14",
+          "z_bits": 35.14,
+          "difficulty": 37861171487.88108,
+          "expected_hashes": 37861171487.88108,
+          "probability_per_hash": 2.641228363258882e-11
+        },
+        {
+          "label": "1Z00",
+          "z_bits": 1.0,
+          "difficulty": 2.0,
+          "expected_hashes": 2.0,
+          "probability_per_hash": 0.5
+        },
+        {
+          "label": "60Z99",
+          "z_bits": 60.99,
+          "difficulty": 2.2899153881060746e+18,
+          "expected_hashes": 2.2899153881060746e+18,
+          "probability_per_hash": 4.366973579871316e-19
+        }
+      ],
+      "expected": {
+        "label": "60Z99",
+        "z_bits": 60.99000474,
+        "difficulty": 2.2899229155149844e+18,
+        "expected_hashes": 2.2899229155149844e+18,
+        "probability_per_hash": 4.366959224804763e-19
+      },
+      "notes": "Sum difficulties, then convert back to label."
+    },
+    {
+      "name": "sub_2Z00_minus_1Z00",
+      "operation": "subtract",
+      "inputs": {
+        "minuend": {
+          "label": "2Z00",
+          "z_bits": 2.0,
+          "difficulty": 4.0,
+          "expected_hashes": 4.0,
+          "probability_per_hash": 0.25
+        },
+        "subtrahend": {
+          "label": "1Z00",
+          "z_bits": 1.0,
+          "difficulty": 2.0,
+          "expected_hashes": 2.0,
+          "probability_per_hash": 0.5
+        }
+      },
+      "expected": {
+        "label": "1Z00",
+        "z_bits": 1.0,
+        "difficulty": 2.0,
+        "expected_hashes": 2.0,
+        "probability_per_hash": 0.5
+      },
+      "notes": "Subtract difficulties; clamp at 0Z00 when result <= 0."
+    },
+    {
+      "name": "sub_1Z00_minus_2Z00_clamps_zero",
+      "operation": "subtract",
+      "inputs": {
+        "minuend": {
+          "label": "1Z00",
+          "z_bits": 1.0,
+          "difficulty": 2.0,
+          "expected_hashes": 2.0,
+          "probability_per_hash": 0.5
+        },
+        "subtrahend": {
+          "label": "2Z00",
+          "z_bits": 2.0,
+          "difficulty": 4.0,
+          "expected_hashes": 4.0,
+          "probability_per_hash": 0.25
+        }
+      },
+      "expected": {
+        "label": "0Z00",
+        "z_bits": 0.0,
+        "difficulty": 1.0,
+        "expected_hashes": 1.0,
+        "probability_per_hash": 1.0
+      },
+      "notes": "Subtract difficulties; clamp at 0Z00 when result <= 0."
+    },
+    {
+      "name": "sub_33Z54_minus_33Z53",
+      "operation": "subtract",
+      "inputs": {
+        "minuend": {
+          "label": "33Z54",
+          "z_bits": 33.54,
+          "difficulty": 12489528822.347048,
+          "expected_hashes": 12489528822.347048,
+          "probability_per_hash": 8.00670717225727e-11
+        },
+        "subtrahend": {
+          "label": "33Z53",
+          "z_bits": 33.53,
+          "difficulty": 12403257345.017431,
+          "expected_hashes": 12403257345.017431,
+          "probability_per_hash": 8.062398224783385e-11
+        }
+      },
+      "expected": {
+        "label": "26Z36",
+        "z_bits": 26.36238033,
+        "difficulty": 86271477.32961655,
+        "expected_hashes": 86271477.32961655,
+        "probability_per_hash": 1.1591316515646413e-08
+      },
+      "notes": "Subtract difficulties; clamp at 0Z00 when result <= 0."
+    },
+    {
+      "name": "sub_50Z00_minus_20Z00",
+      "operation": "subtract",
+      "inputs": {
+        "minuend": {
+          "label": "50Z00",
+          "z_bits": 50.0,
+          "difficulty": 1125899906842624.0,
+          "expected_hashes": 1125899906842624.0,
+          "probability_per_hash": 8.881784197001252e-16
+        },
+        "subtrahend": {
+          "label": "20Z00",
+          "z_bits": 20.0,
+          "difficulty": 1048576.0,
+          "expected_hashes": 1048576.0,
+          "probability_per_hash": 9.5367431640625e-07
+        }
+      },
+      "expected": {
+        "label": "49Z99",
+        "z_bits": 50.0,
+        "difficulty": 1125899905794048.0,
+        "expected_hashes": 1125899905794048.0,
+        "probability_per_hash": 8.881784205273062e-16
+      },
+      "notes": "Subtract difficulties; clamp at 0Z00 when result <= 0."
+    },
+    {
+      "name": "sub_60Z99_minus_60Z98",
+      "operation": "subtract",
+      "inputs": {
+        "minuend": {
+          "label": "60Z99",
+          "z_bits": 60.99,
+          "difficulty": 2.2899153881060746e+18,
+          "expected_hashes": 2.2899153881060746e+18,
+          "probability_per_hash": 4.366973579871316e-19
+        },
+        "subtrahend": {
+          "label": "60Z98",
+          "z_bits": 60.98,
+          "difficulty": 2.274097787113922e+18,
+          "expected_hashes": 2.274097787113922e+18,
+          "probability_per_hash": 4.3973482832024955e-19
+        }
+      },
+      "expected": {
+        "label": "53Z81",
+        "z_bits": 53.81238033,
+        "difficulty": 1.5817600992152576e+16,
+        "expected_hashes": 1.5817600992152576e+16,
+        "probability_per_hash": 6.322071219877901e-17
+      },
+      "notes": "Subtract difficulties; clamp at 0Z00 when result <= 0."
+    },
+    {
+      "name": "sub_close_values",
+      "operation": "subtract",
+      "inputs": {
+        "minuend": {
+          "label": "40Z10",
+          "z_bits": 40.1,
+          "difficulty": 1178427384400.4006,
+          "expected_hashes": 1178427384400.4006,
+          "probability_per_hash": 8.485885623820709e-13
+        },
+        "subtrahend": {
+          "label": "40Z09",
+          "z_bits": 40.09,
+          "difficulty": 1170287391865.5347,
+          "expected_hashes": 1170287391865.5347,
+          "probability_per_hash": 8.544909626052773e-13
+        }
+      },
+      "expected": {
+        "label": "32Z92",
+        "z_bits": 32.92238033,
+        "difficulty": 8139992534.865967,
+        "expected_hashes": 8139992534.865967,
+        "probability_per_hash": 1.2285023551516882e-10
+      },
+      "notes": "Subtract difficulties; clamp at 0Z00 when result <= 0."
+    },
+    {
+      "name": "sub_far_apart_to_zero",
+      "operation": "subtract",
+      "inputs": {
+        "minuend": {
+          "label": "10Z00",
+          "z_bits": 10.0,
+          "difficulty": 1024.0,
+          "expected_hashes": 1024.0,
+          "probability_per_hash": 0.0009765625
+        },
+        "subtrahend": {
+          "label": "30Z00",
+          "z_bits": 30.0,
+          "difficulty": 1073741824.0,
+          "expected_hashes": 1073741824.0,
+          "probability_per_hash": 9.313225746154785e-10
+        }
+      },
+      "expected": {
+        "label": "0Z00",
+        "z_bits": 0.0,
+        "difficulty": 1.0,
+        "expected_hashes": 1.0,
+        "probability_per_hash": 1.0
+      },
+      "notes": "Subtract difficulties; clamp at 0Z00 when result <= 0."
+    },
+    {
+      "name": "scale_10Z00_by_2",
+      "operation": "scale",
+      "inputs": {
+        "note": {
+          "label": "10Z00",
+          "z_bits": 10.0,
+          "difficulty": 1024.0,
+          "expected_hashes": 1024.0,
+          "probability_per_hash": 0.0009765625
+        },
+        "factor": 2.0
+      },
+      "expected": {
+        "label": "11Z00",
+        "z_bits": 11.0,
+        "difficulty": 2048.0,
+        "expected_hashes": 2048.0,
+        "probability_per_hash": 0.00048828125
+      },
+      "notes": "Multiply difficulty by factor; if <1 hash, snap to 0Z00."
+    },
+    {
+      "name": "scale_10Z00_by_0_to_zero",
+      "operation": "scale",
+      "inputs": {
+        "note": {
+          "label": "10Z00",
+          "z_bits": 10.0,
+          "difficulty": 1024.0,
+          "expected_hashes": 1024.0,
+          "probability_per_hash": 0.0009765625
+        },
+        "factor": 0.0
+      },
+      "expected": {
+        "label": "0Z00",
+        "z_bits": 0.0,
+        "difficulty": 1.0,
+        "expected_hashes": 1.0,
+        "probability_per_hash": 1.0
+      },
+      "notes": "Multiply difficulty by factor; if <1 hash, snap to 0Z00."
+    },
+    {
+      "name": "scale_33Z53_by_1_5",
+      "operation": "scale",
+      "inputs": {
+        "note": {
+          "label": "33Z53",
+          "z_bits": 33.53,
+          "difficulty": 12403257345.017431,
+          "expected_hashes": 12403257345.017431,
+          "probability_per_hash": 8.062398224783385e-11
+        },
+        "factor": 1.5
+      },
+      "expected": {
+        "label": "34Z11",
+        "z_bits": 34.1149625,
+        "difficulty": 18604886017.526146,
+        "expected_hashes": 18604886017.526146,
+        "probability_per_hash": 5.3749321498555963e-11
+      },
+      "notes": "Multiply difficulty by factor; if <1 hash, snap to 0Z00."
+    },
+    {
+      "name": "scale_33Z53_by_1e-6_to_zero",
+      "operation": "scale",
+      "inputs": {
+        "note": {
+          "label": "33Z53",
+          "z_bits": 33.53,
+          "difficulty": 12403257345.017431,
+          "expected_hashes": 12403257345.017431,
+          "probability_per_hash": 8.062398224783385e-11
+        },
+        "factor": 1e-06
+      },
+      "expected": {
+        "label": "13Z59",
+        "z_bits": 13.59843143,
+        "difficulty": 12403.257345017431,
+        "expected_hashes": 12403.257345017431,
+        "probability_per_hash": 8.062398224783383e-05
+      },
+      "notes": "Multiply difficulty by factor; if <1 hash, snap to 0Z00."
+    },
+    {
+      "name": "scale_1Z00_by_10",
+      "operation": "scale",
+      "inputs": {
+        "note": {
+          "label": "1Z00",
+          "z_bits": 1.0,
+          "difficulty": 2.0,
+          "expected_hashes": 2.0,
+          "probability_per_hash": 0.5
+        },
+        "factor": 10.0
+      },
+      "expected": {
+        "label": "4Z32",
+        "z_bits": 4.32192809,
+        "difficulty": 20.0,
+        "expected_hashes": 20.0,
+        "probability_per_hash": 0.04999999999999999
+      },
+      "notes": "Multiply difficulty by factor; if <1 hash, snap to 0Z00."
+    },
+    {
+      "name": "scale_25Z50_by_100",
+      "operation": "scale",
+      "inputs": {
+        "note": {
+          "label": "25Z50",
+          "z_bits": 25.5,
+          "difficulty": 47453132.81212578,
+          "expected_hashes": 47453132.81212578,
+          "probability_per_hash": 2.1073424255447017e-08
+        },
+        "factor": 100.0
+      },
+      "expected": {
+        "label": "32Z14",
+        "z_bits": 32.14385619,
+        "difficulty": 4745313281.212578,
+        "expected_hashes": 4745313281.212578,
+        "probability_per_hash": 2.1073424255447034e-10
+      },
+      "notes": "Multiply difficulty by factor; if <1 hash, snap to 0Z00."
+    },
+    {
+      "name": "scale_5Z75_by_0_5",
+      "operation": "scale",
+      "inputs": {
+        "note": {
+          "label": "5Z75",
+          "z_bits": 5.75,
+          "difficulty": 53.81737057623773,
+          "expected_hashes": 53.81737057623773,
+          "probability_per_hash": 0.018581361171917516
+        },
+        "factor": 0.5
+      },
+      "expected": {
+        "label": "4Z75",
+        "z_bits": 4.75,
+        "difficulty": 26.908685288118864,
+        "expected_hashes": 26.908685288118864,
+        "probability_per_hash": 0.03716272234383503
+      },
+      "notes": "Multiply difficulty by factor; if <1 hash, snap to 0Z00."
+    },
+    {
+      "name": "div_2Z00_over_1Z00",
+      "operation": "divide",
+      "inputs": {
+        "numerator": {
+          "label": "2Z00",
+          "z_bits": 2.0,
+          "difficulty": 4.0,
+          "expected_hashes": 4.0,
+          "probability_per_hash": 0.25
+        },
+        "denominator": {
+          "label": "1Z00",
+          "z_bits": 1.0,
+          "difficulty": 2.0,
+          "expected_hashes": 2.0,
+          "probability_per_hash": 0.5
+        }
+      },
+      "expected": {
+        "ratio": 2.0
+      },
+      "notes": "Difficulty ratio; denominator must have positive difficulty."
+    },
+    {
+      "name": "div_1Z00_over_2Z00",
+      "operation": "divide",
+      "inputs": {
+        "numerator": {
+          "label": "1Z00",
+          "z_bits": 1.0,
+          "difficulty": 2.0,
+          "expected_hashes": 2.0,
+          "probability_per_hash": 0.5
+        },
+        "denominator": {
+          "label": "2Z00",
+          "z_bits": 2.0,
+          "difficulty": 4.0,
+          "expected_hashes": 4.0,
+          "probability_per_hash": 0.25
+        }
+      },
+      "expected": {
+        "ratio": 0.5
+      },
+      "notes": "Difficulty ratio; denominator must have positive difficulty."
+    },
+    {
+      "name": "div_33Z53_over_33Z53",
+      "operation": "divide",
+      "inputs": {
+        "numerator": {
+          "label": "33Z53",
+          "z_bits": 33.53,
+          "difficulty": 12403257345.017431,
+          "expected_hashes": 12403257345.017431,
+          "probability_per_hash": 8.062398224783385e-11
+        },
+        "denominator": {
+          "label": "33Z53",
+          "z_bits": 33.53,
+          "difficulty": 12403257345.017431,
+          "expected_hashes": 12403257345.017431,
+          "probability_per_hash": 8.062398224783385e-11
+        }
+      },
+      "expected": {
+        "ratio": 1.0
+      },
+      "notes": "Difficulty ratio; denominator must have positive difficulty."
+    },
+    {
+      "name": "div_50Z00_over_25Z50",
+      "operation": "divide",
+      "inputs": {
+        "numerator": {
+          "label": "50Z00",
+          "z_bits": 50.0,
+          "difficulty": 1125899906842624.0,
+          "expected_hashes": 1125899906842624.0,
+          "probability_per_hash": 8.881784197001252e-16
+        },
+        "denominator": {
+          "label": "25Z50",
+          "z_bits": 25.5,
+          "difficulty": 47453132.81212578,
+          "expected_hashes": 47453132.81212578,
+          "probability_per_hash": 2.1073424255447017e-08
+        }
+      },
+      "expected": {
+        "ratio": 23726566.406062886
+      },
+      "notes": "Difficulty ratio; denominator must have positive difficulty."
+    },
+    {
+      "name": "div_60Z99_over_60Z98",
+      "operation": "divide",
+      "inputs": {
+        "numerator": {
+          "label": "60Z99",
+          "z_bits": 60.99,
+          "difficulty": 2.2899153881060746e+18,
+          "expected_hashes": 2.2899153881060746e+18,
+          "probability_per_hash": 4.366973579871316e-19
+        },
+        "denominator": {
+          "label": "60Z98",
+          "z_bits": 60.98,
+          "difficulty": 2.274097787113922e+18,
+          "expected_hashes": 2.274097787113922e+18,
+          "probability_per_hash": 4.3973482832024955e-19
+        }
+      },
+      "expected": {
+        "ratio": 1.0069555500567224
+      },
+      "notes": "Difficulty ratio; denominator must have positive difficulty."
+    },
+    {
+      "name": "div_close_values",
+      "operation": "divide",
+      "inputs": {
+        "numerator": {
+          "label": "40Z10",
+          "z_bits": 40.1,
+          "difficulty": 1178427384400.4006,
+          "expected_hashes": 1178427384400.4006,
+          "probability_per_hash": 8.485885623820709e-13
+        },
+        "denominator": {
+          "label": "40Z09",
+          "z_bits": 40.09,
+          "difficulty": 1170287391865.5347,
+          "expected_hashes": 1170287391865.5347,
+          "probability_per_hash": 8.544909626052773e-13
+        }
+      },
+      "expected": {
+        "ratio": 1.0069555500567173
+      },
+      "notes": "Difficulty ratio; denominator must have positive difficulty."
+    },
+    {
+      "name": "div_wide_gap",
+      "operation": "divide",
+      "inputs": {
+        "numerator": {
+          "label": "45Z00",
+          "z_bits": 45.0,
+          "difficulty": 35184372088832.0,
+          "expected_hashes": 35184372088832.0,
+          "probability_per_hash": 2.842170943040401e-14
+        },
+        "denominator": {
+          "label": "5Z00",
+          "z_bits": 5.0,
+          "difficulty": 32.0,
+          "expected_hashes": 32.0,
+          "probability_per_hash": 0.03125
+        }
+      },
+      "expected": {
+        "ratio": 1099511627776.0
+      },
+      "notes": "Difficulty ratio; denominator must have positive difficulty."
+    }
+  ]
+}
