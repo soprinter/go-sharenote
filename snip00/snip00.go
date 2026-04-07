@@ -853,6 +853,34 @@ func TargetFor(note any) (*big.Int, error) {
 	return result.Rsh(result, precisionBits), nil
 }
 
+// ContinuousDifficulty calculates the exact floating-point Z-bits equivalent
+// from a raw cryptographic target. It is the mathematical inverse of TargetFor.
+func ContinuousDifficulty(target *big.Int) (float64, error) {
+	if target == nil || target.Sign() <= 0 {
+		return 0, errors.New("target must be a positive integer")
+	}
+
+	// IEEE 754 float64 can safely hold values up to ~2^1024.
+	// Since 256-bit targets easily fit within this magnitude,
+	// we extract the highest 53 bits of mantissa natively via big.Float.
+	f := new(big.Float).SetInt(target)
+	val, _ := f.Float64()
+
+	if math.IsInf(val, 1) || val == 0 {
+		return 0, errors.New("target out of precision bounds")
+	}
+
+	// target = 2^(256 - ZBits) => log2(target) = 256 - ZBits
+	log2Target := math.Log2(val)
+	zbits := 256.0 - log2Target
+
+	if zbits < 0 {
+		return 0, errors.New("target exceeds maximum possible 256-bit entropy")
+	}
+
+	return zbits, nil
+}
+
 // CompareNotes orders notes by rarity (higher Z first, then cents).
 func CompareNotes(a, b any) (int, error) {
 	noteA, err := EnsureNote(a)
