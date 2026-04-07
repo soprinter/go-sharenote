@@ -2,114 +2,53 @@ package snip05
 
 import (
 	"testing"
-
-	"github.com/ohstr/nmilat/pkg/nip01"
 )
 
-func TestMarshalUnmarshalRoundTrip(t *testing.T) {
-	original := &Identity{
-		ChainID: "15",
-		Address: "fc1qxyz123abc456def789",
+func TestMinerIdentity(t *testing.T) {
+	m := &MinerIdentity{
+		Pubkey:  "pubkey",
+		Address: "addr",
 	}
 
-	tags, err := MarshalTags(original)
+	ev, err := NewMinerIdentityEvent(m)
 	if err != nil {
-		t.Fatalf("MarshalTags: %v", err)
+		t.Fatalf("error creating event: %v", err)
 	}
 
-	if len(tags) != 1 {
-		t.Fatalf("expected 1 tag, got %d", len(tags))
-	}
-	if tags[0][0] != "a" || tags[0][1] != "15" || tags[0][2] != "fc1qxyz123abc456def789" {
-		t.Errorf("unexpected tag: %v", tags[0])
-	}
-
-	parsed, err := UnmarshalTags(tags)
-	if err != nil {
-		t.Fatalf("UnmarshalTags: %v", err)
-	}
-
-	if parsed.ChainID != original.ChainID {
-		t.Errorf("ChainID: got %s, want %s", parsed.ChainID, original.ChainID)
-	}
-	if parsed.Address != original.Address {
-		t.Errorf("Address: got %s, want %s", parsed.Address, original.Address)
-	}
-}
-
-func TestNewIdentityEvent(t *testing.T) {
-	id := &Identity{
-		ChainID: "15",
-		Address: "fc1qaddr",
-	}
-	ev, err := NewIdentityEvent(id)
-	if err != nil {
-		t.Fatalf("NewIdentityEvent: %v", err)
-	}
 	if ev.Kind != KindMinerIdentity {
-		t.Errorf("Kind: got %d, want %d", ev.Kind, KindMinerIdentity)
+		t.Errorf("expected kind %d, got %d", KindMinerIdentity, ev.Kind)
 	}
-	if len(ev.Tags) != 1 {
-		t.Errorf("Tags count: got %d, want 1", len(ev.Tags))
-	}
-}
 
-func TestMarshalNilIdentity(t *testing.T) {
-	_, err := MarshalTags(nil)
-	if err == nil {
-		t.Fatal("expected error for nil identity")
-	}
-}
-
-func TestMarshalMissingChainID(t *testing.T) {
-	_, err := MarshalTags(&Identity{Address: "addr"})
-	if err == nil {
-		t.Fatal("expected error for missing chain ID")
-	}
-}
-
-func TestMarshalMissingAddress(t *testing.T) {
-	_, err := MarshalTags(&Identity{ChainID: "15"})
-	if err == nil {
-		t.Fatal("expected error for missing address")
-	}
-}
-
-func TestUnmarshalMissingATag(t *testing.T) {
-	_, err := UnmarshalTags([][]string{{"d", "something"}})
-	if err == nil {
-		t.Fatal("expected error for missing 'a' tag")
-	}
-}
-
-func TestUnmarshalShortATag(t *testing.T) {
-	_, err := UnmarshalTags([][]string{{"a", "15"}})
-	if err == nil {
-		t.Fatal("expected error for short 'a' tag")
-	}
-}
-
-func TestParseIdentityEventWrongKind(t *testing.T) {
-	ev := &nip01.Event{Kind: 99999, Tags: [][]string{{"a", "15", "addr"}}}
-	_, err := ParseIdentityEvent(ev)
-	if err == nil {
-		t.Fatal("expected error for wrong kind")
-	}
-}
-
-func TestParseIdentityEventValid(t *testing.T) {
-	ev := &nip01.Event{
-		Kind: KindMinerIdentity,
-		Tags: [][]string{{"a", "2a", "bc1qsomebitcoinaddr"}},
-	}
-	id, err := ParseIdentityEvent(ev)
+	parsed, err := ParseMinerIdentityEvent(ev)
 	if err != nil {
-		t.Fatalf("ParseIdentityEvent: %v", err)
+		t.Fatalf("parse error: %v", err)
 	}
-	if id.ChainID != "2a" {
-		t.Errorf("ChainID: got %s, want 2a", id.ChainID)
+
+	if parsed.Pubkey != m.Pubkey || parsed.Address != m.Address {
+		t.Errorf("id mismatch: %+v", parsed)
 	}
-	if id.Address != "bc1qsomebitcoinaddr" {
-		t.Errorf("Address: got %s, want bc1qsomebitcoinaddr", id.Address)
+}
+
+func TestPoolIdentity(t *testing.T) {
+	p := &PoolIdentity{
+		Name:        "Pool",
+		Description: "Desc",
+		Pubkey:      "poolpub",
+		Address:     "pooladdr",
+		Endpoints:   []string{"relay1", "relay2"},
+	}
+
+	ev, err := NewPoolIdentityEvent(p)
+	if err != nil {
+		t.Fatalf("error creating event: %v", err)
+	}
+
+	parsed, err := ParsePoolIdentityEvent(ev)
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+
+	if parsed.Name != p.Name || parsed.Pubkey != p.Pubkey || len(parsed.Endpoints) != 2 {
+		t.Errorf("pool id mismatch: %+v", parsed)
 	}
 }

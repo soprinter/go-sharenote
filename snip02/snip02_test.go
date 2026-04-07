@@ -3,7 +3,7 @@ package snip02
 import (
 	"testing"
 
-	"github.com/ohstr/nmilat/pkg/nip01"
+	"github.com/nbd-wtf/go-nostr"
 )
 
 func TestMarshalUnmarshalRoundTrip(t *testing.T) {
@@ -134,7 +134,7 @@ func TestMarshalNilHashrate(t *testing.T) {
 }
 
 func TestUnmarshalMissingAddress(t *testing.T) {
-	tags := [][]string{{"all", "1000"}}
+	tags := nostr.Tags{nostr.Tag{"all", "1000"}}
 	_, err := UnmarshalTags(tags)
 	if err == nil {
 		t.Fatal("expected error for missing address")
@@ -142,10 +142,10 @@ func TestUnmarshalMissingAddress(t *testing.T) {
 }
 
 func TestWorkerSubfields(t *testing.T) {
-	tags := [][]string{
-		{"a", "fc1qaddr"},
-		{"all", "5000"},
-		{"w:rig01", "h:4123", "sn:33z55", "msn:34z10", "csn:50", "crsn:2", "mt:10.00", "lsn:1712345678", "ua:bmminer/2.0"},
+	tags := nostr.Tags{
+		nostr.Tag{"a", "fc1qaddr"},
+		nostr.Tag{"all", "5000"},
+		nostr.Tag{"w:rig01", "h:4123", "sn:33z55", "msn:34z10", "csn:50", "crsn:2", "mt:10.00", "lsn:1712345678", "ua:bmminer/2.0"},
 	}
 
 	hr, err := UnmarshalTags(tags)
@@ -205,7 +205,7 @@ func TestNewHashrateEvent(t *testing.T) {
 }
 
 func TestParseHashrateEventWrongKind(t *testing.T) {
-	ev := &nip01.Event{Kind: 99999, Tags: [][]string{{"a", "addr"}, {"all", "100"}}}
+	ev := &nostr.Event{Kind: 99999, Tags: nostr.Tags{nostr.Tag{"a", "addr"}, nostr.Tag{"all", "100"}}}
 	_, err := ParseHashrateEvent(ev)
 	if err == nil {
 		t.Fatal("expected error for wrong kind")

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ohstr/nmilat/pkg/nip01"
+	"github.com/nbd-wtf/go-nostr"
 	"github.com/soprinter/go-sharenote/internal/hash"
 	"github.com/soprinter/go-sharenote/internal/tags"
 )
@@ -61,16 +61,19 @@ type Share struct {
 // --- Invoice functions ---
 
 // NewInvoiceEvent creates an unpaid invoice event (kind 35500).
-func NewInvoiceEvent(inv *Invoice) (*nip01.Event, error) {
+func NewInvoiceEvent(inv *Invoice) (*nostr.Event, error) {
 	t, err := MarshalInvoiceTags(inv)
 	if err != nil {
 		return nil, err
 	}
-	return nip01.NewEvent(KindInvoice, "", "", t...), nil
+	return &nostr.Event{
+		Kind: KindInvoice,
+		Tags: t,
+	}, nil
 }
 
 // NewSettledInvoiceEvent creates a settled invoice event (kind 35501).
-func NewSettledInvoiceEvent(inv *Invoice) (*nip01.Event, error) {
+func NewSettledInvoiceEvent(inv *Invoice) (*nostr.Event, error) {
 	if inv.Tx == nil {
 		return nil, fmt.Errorf("settled invoice requires a transaction")
 	}
@@ -78,23 +81,26 @@ func NewSettledInvoiceEvent(inv *Invoice) (*nip01.Event, error) {
 	if err != nil {
 		return nil, err
 	}
-	return nip01.NewEvent(KindSettledInvoice, "", "", t...), nil
+	return &nostr.Event{
+		Kind: KindSettledInvoice,
+		Tags: t,
+	}, nil
 }
 
 // MarshalInvoiceTags converts an Invoice to tags.
-func MarshalInvoiceTags(inv *Invoice) ([][]string, error) {
+func MarshalInvoiceTags(inv *Invoice) (nostr.Tags, error) {
 	if inv == nil {
 		return nil, fmt.Errorf("invoice is nil")
 	}
 
-	t := make([][]string, 0, 8)
-	t = append(t, []string{"d", inv.HeightHash})
-	t = append(t, []string{"b", inv.BlockHash})
-	t = append(t, []string{"height", strconv.FormatInt(inv.Height, 10)})
-	t = append(t, []string{"amount", strconv.FormatInt(inv.Amount, 10)})
-	t = append(t, []string{"workers", strconv.FormatInt(inv.Workers, 10)})
+	t := make(nostr.Tags, 0, 8)
+	t = append(t, nostr.Tag{"d", inv.HeightHash})
+	t = append(t, nostr.Tag{"b", inv.BlockHash})
+	t = append(t, nostr.Tag{"height", strconv.FormatInt(inv.Height, 10)})
+	t = append(t, nostr.Tag{"amount", strconv.FormatInt(inv.Amount, 10)})
+	t = append(t, nostr.Tag{"workers", strconv.FormatInt(inv.Workers, 10)})
 	if inv.Shares != "" {
-		t = append(t, []string{"shares", inv.Shares})
+		t = append(t, nostr.Tag{"shares", inv.Shares})
 	}
 
 	if inv.Tx != nil {
@@ -104,8 +110,8 @@ func MarshalInvoiceTags(inv *Invoice) ([][]string, error) {
 	return t, nil
 }
 
-// ParseInvoiceEvent extracts an Invoice from a nip01.Event (kind 35500 or 35501).
-func ParseInvoiceEvent(ev *nip01.Event) (*Invoice, error) {
+// ParseInvoiceEvent extracts an Invoice from a nostr.Event (kind 35500 or 35501).
+func ParseInvoiceEvent(ev *nostr.Event) (*Invoice, error) {
 	if ev == nil {
 		return nil, fmt.Errorf("event is nil")
 	}
@@ -116,7 +122,7 @@ func ParseInvoiceEvent(ev *nip01.Event) (*Invoice, error) {
 }
 
 // UnmarshalInvoiceTags parses tags into an Invoice.
-func UnmarshalInvoiceTags(t [][]string) (*Invoice, error) {
+func UnmarshalInvoiceTags(t nostr.Tags) (*Invoice, error) {
 	inv := &Invoice{}
 	var err error
 
@@ -156,25 +162,31 @@ func UnmarshalInvoiceTags(t [][]string) (*Invoice, error) {
 // --- Share functions ---
 
 // NewPendingShareEvent creates a pending share event (kind 35503).
-func NewPendingShareEvent(s *Share) (*nip01.Event, error) {
+func NewPendingShareEvent(s *Share) (*nostr.Event, error) {
 	t, err := MarshalShareTags(s)
 	if err != nil {
 		return nil, err
 	}
-	return nip01.NewEvent(KindPendingShare, "", "", t...), nil
+	return &nostr.Event{
+		Kind: KindPendingShare,
+		Tags: t,
+	}, nil
 }
 
 // NewFinalizedShareEvent creates a finalized share event (kind 35504).
-func NewFinalizedShareEvent(s *Share) (*nip01.Event, error) {
+func NewFinalizedShareEvent(s *Share) (*nostr.Event, error) {
 	t, err := MarshalShareTags(s)
 	if err != nil {
 		return nil, err
 	}
-	return nip01.NewEvent(KindFinalizedShare, "", "", t...), nil
+	return &nostr.Event{
+		Kind: KindFinalizedShare,
+		Tags: t,
+	}, nil
 }
 
 // NewSharePaymentEvent creates a share payment event (kind 35505).
-func NewSharePaymentEvent(s *Share) (*nip01.Event, error) {
+func NewSharePaymentEvent(s *Share) (*nostr.Event, error) {
 	t, err := MarshalShareTags(s)
 	if err != nil {
 		return nil, err
@@ -188,36 +200,39 @@ func NewSharePaymentEvent(s *Share) (*nip01.Event, error) {
 		}
 	}
 	if !found {
-		t = append(t, []string{"chain", "15"})
+		t = append(t, nostr.Tag{"chain", "15"})
 	}
-	return nip01.NewEvent(KindSharePayment, "", "", t...), nil
+	return &nostr.Event{
+		Kind: KindSharePayment,
+		Tags: t,
+	}, nil
 }
 
 // MarshalShareTags converts a Share to tags.
-func MarshalShareTags(s *Share) ([][]string, error) {
+func MarshalShareTags(s *Share) (nostr.Tags, error) {
 	if s == nil {
 		return nil, fmt.Errorf("share is nil")
 	}
 
-	t := make([][]string, 0, 16)
-	t = append(t, []string{"d", s.ShareID})
-	t = append(t, []string{"a", s.Address})
-	t = append(t, []string{"h", s.HeightHash})
-	t = append(t, []string{"b", s.BlockHash})
+	t := make(nostr.Tags, 0, 16)
+	t = append(t, nostr.Tag{"d", s.ShareID})
+	t = append(t, nostr.Tag{"a", s.Address})
+	t = append(t, nostr.Tag{"h", s.HeightHash})
+	t = append(t, nostr.Tag{"b", s.BlockHash})
 
 	if s.ChainID != "" {
-		t = append(t, []string{"chain", s.ChainID})
+		t = append(t, nostr.Tag{"chain", s.ChainID})
 	}
 
-	workerTag := []string{"workers"}
+	workerTag := nostr.Tag{"workers"}
 	workerTag = append(workerTag, s.Workers...)
 	t = append(t, workerTag)
 
-	t = append(t, []string{"height", strconv.FormatInt(s.Height, 10)})
-	t = append(t, []string{"amount", strconv.FormatInt(s.Amount, 10)})
+	t = append(t, nostr.Tag{"height", strconv.FormatInt(s.Height, 10)})
+	t = append(t, nostr.Tag{"amount", strconv.FormatInt(s.Amount, 10)})
 
 	if s.Shares != "" {
-		shareTag := []string{"shares", s.Shares}
+		shareTag := nostr.Tag{"shares", s.Shares}
 		if s.ShareCount > 0 {
 			shareTag = append(shareTag, strconv.FormatUint(s.ShareCount, 10))
 		}
@@ -225,25 +240,25 @@ func MarshalShareTags(s *Share) ([][]string, error) {
 	}
 
 	if s.TotalShares != "" {
-		totalTag := []string{"totalshares", s.TotalShares}
+		totalTag := nostr.Tag{"totalshares", s.TotalShares}
 		if s.TotalShareCount > 0 {
 			totalTag = append(totalTag, strconv.FormatUint(s.TotalShareCount, 10))
 		}
 		t = append(t, totalTag)
 	}
 
-	t = append(t, []string{"timestamp", strconv.FormatInt(s.Timestamp, 10)})
+	t = append(t, nostr.Tag{"timestamp", strconv.FormatInt(s.Timestamp, 10)})
 
 	if s.Fee != 0 {
-		t = append(t, []string{"fee", strconv.FormatInt(s.Fee, 10)})
+		t = append(t, nostr.Tag{"fee", strconv.FormatInt(s.Fee, 10)})
 	}
 	if s.EstPaymentHeight != 0 {
-		t = append(t, []string{"eph", strconv.FormatInt(s.EstPaymentHeight, 10)})
+		t = append(t, nostr.Tag{"eph", strconv.FormatInt(s.EstPaymentHeight, 10)})
 	}
 
 	for _, id := range s.SharenoteEventIDs {
 		if strings.TrimSpace(id) != "" {
-			t = append(t, []string{"sn", id})
+			t = append(t, nostr.Tag{"sn", id})
 		}
 	}
 
@@ -254,8 +269,8 @@ func MarshalShareTags(s *Share) ([][]string, error) {
 	return t, nil
 }
 
-// ParseShareEvent extracts a Share from a nip01.Event (kind 35503, 35504, or 35505).
-func ParseShareEvent(ev *nip01.Event) (*Share, error) {
+// ParseShareEvent extracts a Share from a nostr.Event (kind 35503, 35504, or 35505).
+func ParseShareEvent(ev *nostr.Event) (*Share, error) {
 	if ev == nil {
 		return nil, fmt.Errorf("event is nil")
 	}
@@ -266,7 +281,7 @@ func ParseShareEvent(ev *nip01.Event) (*Share, error) {
 }
 
 // UnmarshalShareTags parses tags into a Share.
-func UnmarshalShareTags(t [][]string) (*Share, error) {
+func UnmarshalShareTags(t nostr.Tags) (*Share, error) {
 	s := &Share{}
 	var err error
 
@@ -418,14 +433,14 @@ func ComputePaymentShareID(height int64, address string) string {
 
 // --- Transaction helpers ---
 
-func marshalTransaction(tx *Transaction) []string {
+func marshalTransaction(tx *Transaction) nostr.Tag {
 	if tx.Confirmed {
-		return []string{"x", tx.Txid, strconv.FormatInt(tx.BlockHeight, 10), tx.BlockHash}
+		return nostr.Tag{"x", tx.Txid, strconv.FormatInt(tx.BlockHeight, 10), tx.BlockHash}
 	}
-	return []string{"x", tx.Txid}
+	return nostr.Tag{"x", tx.Txid}
 }
 
-func unmarshalTransaction(tag []string) (*Transaction, error) {
+func unmarshalTransaction(tag nostr.Tag) (*Transaction, error) {
 	if len(tag) < 2 || tag[1] == "" {
 		return nil, fmt.Errorf("transaction tag missing txid")
 	}

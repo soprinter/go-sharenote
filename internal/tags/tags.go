@@ -4,10 +4,12 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strconv"
+
+	"github.com/nbd-wtf/go-nostr"
 )
 
 // Find returns the first tag with the given key, or nil.
-func Find(tags [][]string, key string) []string {
+func Find(tags nostr.Tags, key string) nostr.Tag {
 	for _, tag := range tags {
 		if len(tag) > 0 && tag[0] == key {
 			return tag
@@ -17,8 +19,8 @@ func Find(tags [][]string, key string) []string {
 }
 
 // FindAll returns all tags with the given key.
-func FindAll(tags [][]string, key string) [][]string {
-	var result [][]string
+func FindAll(tags nostr.Tags, key string) nostr.Tags {
+	var result nostr.Tags
 	for _, tag := range tags {
 		if len(tag) > 0 && tag[0] == key {
 			result = append(result, tag)
@@ -28,7 +30,7 @@ func FindAll(tags [][]string, key string) [][]string {
 }
 
 // RequireString extracts a single string value from a tag, returning an error if missing.
-func RequireString(tags [][]string, key string) (string, error) {
+func RequireString(tags nostr.Tags, key string) (string, error) {
 	tag := Find(tags, key)
 	if tag == nil || len(tag) < 2 {
 		return "", fmt.Errorf("required tag '%s' not found", key)
@@ -37,7 +39,7 @@ func RequireString(tags [][]string, key string) (string, error) {
 }
 
 // RequireInt64 extracts and parses an int64 value from a tag.
-func RequireInt64(tags [][]string, key string) (int64, error) {
+func RequireInt64(tags nostr.Tags, key string) (int64, error) {
 	s, err := RequireString(tags, key)
 	if err != nil {
 		return 0, err
@@ -50,7 +52,7 @@ func RequireInt64(tags [][]string, key string) (int64, error) {
 }
 
 // OptionalString extracts a string value, returning "" if the tag is absent.
-func OptionalString(tags [][]string, key string) string {
+func OptionalString(tags nostr.Tags, key string) string {
 	tag := Find(tags, key)
 	if tag == nil || len(tag) < 2 {
 		return ""
@@ -60,7 +62,7 @@ func OptionalString(tags [][]string, key string) string {
 
 // OptionalInt64 extracts an int64 value, returning 0 if the tag is absent.
 // Returns an error only if the tag exists but cannot be parsed.
-func OptionalInt64(tags [][]string, key string) (int64, error) {
+func OptionalInt64(tags nostr.Tags, key string) (int64, error) {
 	tag := Find(tags, key)
 	if tag == nil || len(tag) < 2 {
 		return 0, nil

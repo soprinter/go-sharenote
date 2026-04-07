@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ohstr/nmilat/pkg/nip01"
+	"github.com/nbd-wtf/go-nostr"
 )
 
 const KindHashrate = 35502
@@ -34,17 +34,20 @@ type Hashrate struct {
 	Workers       []Worker // "w:" prefixed worker entries
 }
 
-// NewHashrateEvent builds a nip01.Event of kind 35502.
-func NewHashrateEvent(hr *Hashrate) (*nip01.Event, error) {
+// NewHashrateEvent builds a nostr.Event of kind 35502.
+func NewHashrateEvent(hr *Hashrate) (*nostr.Event, error) {
 	t, err := MarshalTags(hr)
 	if err != nil {
 		return nil, err
 	}
-	return nip01.NewEvent(KindHashrate, "", "", t...), nil
+	return &nostr.Event{
+		Kind: KindHashrate,
+		Tags: t,
+	}, nil
 }
 
 // MarshalTags converts a Hashrate into its tag representation.
-func MarshalTags(hr *Hashrate) ([][]string, error) {
+func MarshalTags(hr *Hashrate) (nostr.Tags, error) {
 	if hr == nil {
 		return nil, fmt.Errorf("hashrate is nil")
 	}
@@ -52,40 +55,40 @@ func MarshalTags(hr *Hashrate) ([][]string, error) {
 		return nil, fmt.Errorf("address is required")
 	}
 
-	tags := make([][]string, 0, 2+len(hr.Workers))
-	tags = append(tags, []string{"a", hr.Address})
+	t := make(nostr.Tags, 0, 2+len(hr.Workers))
+	t = append(t, nostr.Tag{"a", hr.Address})
 
 	if hr.TotalHashrate != "" {
-		tag := []string{"all", hr.TotalHashrate}
+		tag := nostr.Tag{"all", hr.TotalHashrate}
 		if hr.MeanSharenote != "" {
 			tag = append(tag, "msn:"+hr.MeanSharenote)
 		}
-		tags = append(tags, tag)
+		t = append(t, tag)
 	} else if hr.Hashrate != "" {
-		tag := []string{"h", hr.Hashrate}
+		tag := nostr.Tag{"h", hr.Hashrate}
 		if hr.MeanSharenote != "" {
 			tag = append(tag, "msn:"+hr.MeanSharenote)
 		}
-		tags = append(tags, tag)
+		t = append(t, tag)
 	}
 
 	for _, w := range hr.Workers {
 		tag := marshalWorker(w)
 		if tag != nil {
-			tags = append(tags, tag)
+			t = append(t, tag)
 		}
 	}
 
-	return tags, nil
+	return t, nil
 }
 
-func marshalWorker(w Worker) []string {
+func marshalWorker(w Worker) nostr.Tag {
 	name := strings.TrimSpace(w.Name)
 	if name == "" {
 		return nil
 	}
 
-	tag := []string{workerTagPrefix + name}
+	tag := nostr.Tag{workerTagPrefix + name}
 	if w.Hashrate != "" {
 		tag = append(tag, "h:"+w.Hashrate)
 	}
@@ -111,8 +114,8 @@ func marshalWorker(w Worker) []string {
 	return tag
 }
 
-// ParseHashrateEvent extracts a Hashrate from a nip01.Event.
-func ParseHashrateEvent(ev *nip01.Event) (*Hashrate, error) {
+// ParseHashrateEvent extracts a Hashrate from a nostr.Event.
+func ParseHashrateEvent(ev *nostr.Event) (*Hashrate, error) {
 	if ev == nil {
 		return nil, fmt.Errorf("event is nil")
 	}
@@ -123,10 +126,10 @@ func ParseHashrateEvent(ev *nip01.Event) (*Hashrate, error) {
 }
 
 // UnmarshalTags parses tags into a Hashrate.
-func UnmarshalTags(tags [][]string) (*Hashrate, error) {
+func UnmarshalTags(t nostr.Tags) (*Hashrate, error) {
 	hr := &Hashrate{}
 
-	for _, tag := range tags {
+	for _, tag := range t {
 		if len(tag) == 0 {
 			continue
 		}
