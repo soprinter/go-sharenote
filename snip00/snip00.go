@@ -67,11 +67,21 @@ type ReliabilityLevel struct {
 }
 
 // Sharenote describes a note label using integer Z value, cent-Z fraction, and derived Z-bit difficulty.
+//
+// Per SNIP-00 Appendix C, the authoritative quantity is the note's difficulty
+// (expected hashes, 2^ZBits). ZBits is retained as a derived float64 purely for
+// display and for backward compatibility; exact-arithmetic aggregation uses the
+// rational difficulty stored in the unexported diffRat field when available.
 type Sharenote struct {
 	Z             int
 	Cents         int
 	ZBits         float64
 	labelOverride string
+	// diffRat caches the note's exact difficulty (2^ZBits) as a rational when it
+	// can be represented exactly (e.g. whole-Z notes, or results of exact
+	// aggregation). It is nil for notes built by plain struct literals, in which
+	// case difficultyRat() recomputes it on demand. Treated as immutable.
+	diffRat *big.Rat
 }
 
 // HumanHashrate represents a human-readable H/s value plus metadata.
@@ -544,7 +554,7 @@ func noteFromComponents(z, cents int) (Sharenote, error) {
 	}
 	c := clampCents(cents)
 	zbits := float64(z) + float64(c)*CentZBitStep
-	return Sharenote{Z: z, Cents: c, ZBits: zbits}, nil
+	return Sharenote{Z: z, Cents: c, ZBits: zbits, diffRat: exactDifficulty(z, c, zbits)}, nil
 }
 
 // NoteFromComponents constructs a canonical Sharenote from integer Z and cent-Z precision.
@@ -572,7 +582,7 @@ func NoteFromZBits(zbits float64) (Sharenote, error) {
 		return Sharenote{}, errors.New("zbits must be non-negative")
 	}
 	z, cents := labelComponentsFromZBits(zbits)
-	return Sharenote{Z: z, Cents: cents, ZBits: zbits}, nil
+	return Sharenote{Z: z, Cents: cents, ZBits: zbits, diffRat: exactDifficulty(z, cents, zbits)}, nil
 }
 
 // MustNoteFromZBits wraps NoteFromZBits and panics on failure. Intended for tests and fixtures.
@@ -667,6 +677,75 @@ func difficultyFromNote(note any) (float64, error) {
 		return 0, err
 	}
 	return math.Exp2(resolved.ZBits), nil
+}
+
+// exactDifficulty returns the exact rational difficulty (2^ZBits) for the given
+// note components. Whole-Z notes (cents == 0 and an integral ZBits) have a
+// power-of-two difficulty that is represented exactly as 2^Z. Fractional notes
+// have an irrational difficulty, so the exact rational representation of the
+// float64 value 2^ZBits is used instead. Converting to *big.Rat lets the
+// aggregation paths sum/subtract/scale without float64 accumulation error and
+// round exactly once at the end.
+func exactDifficulty(z, cents int, zbits float64) *big.Rat {
+	if z >= 0 && cents == 0 && zbits == float64(z) {
+		return new(big.Rat).SetInt(new(big.Int).Lsh(big.NewInt(1), uint(z)))
+	}
+	d := math.Exp2(zbits)
+	if !isFinite(d) || d <= 0 {
+		return new(big.Rat)
+	}
+	r := new(big.Rat).SetFloat64(d)
+	if r == nil {
+		return new(big.Rat)
+	}
+	return r
+}
+
+// difficultyRat returns a copy of the note's difficulty as an exact rational,
+// using the cached diffRat when present and recomputing it otherwise.
+func (n Sharenote) difficultyRat() *big.Rat {
+	if n.diffRat != nil {
+		return new(big.Rat).Set(n.diffRat)
+	}
+	return exactDifficulty(n.Z, n.Cents, n.ZBits)
+}
+
+// DifficultyRat returns the note's difficulty (expected hashes, 2^ZBits) as an
+// exact rational. This is the authoritative quantity used by the exact
+// arithmetic aggregation per SNIP-00 Appendix C. The returned value is a copy
+// and safe for the caller to mutate.
+func (n Sharenote) DifficultyRat() *big.Rat {
+	return n.difficultyRat()
+}
+
+// difficultyRatFromNote resolves any supported note input and returns its exact
+// rational difficulty.
+func difficultyRatFromNote(note any) (*big.Rat, error) {
+	resolved, err := EnsureNote(note)
+	if err != nil {
+		return nil, err
+	}
+	return resolved.difficultyRat(), nil
+}
+
+// zBitsFromDifficultyRat converts an exact rational difficulty back to float64
+// Z-bits. The difficulty must be strictly positive. To avoid float64 overflow
+// for very large (but exactly representable) difficulties, the value is split
+// into a binary mantissa/exponent: difficulty = mant * 2^exp with mant in
+// [0.5, 1), so log2(difficulty) = exp + log2(mant) and only the small mantissa
+// is ever converted to float64.
+func zBitsFromDifficultyRat(difficulty *big.Rat) (float64, error) {
+	if difficulty == nil || difficulty.Sign() <= 0 {
+		return 0, errors.New("difficulty must be > 0")
+	}
+	bf := new(big.Float).SetPrec(256).SetRat(difficulty)
+	mant := new(big.Float).SetPrec(256)
+	exp := bf.MantExp(mant) // difficulty = mant * 2^exp, mant in [0.5, 1)
+	m, _ := mant.Float64()
+	if !isFinite(m) || m <= 0 {
+		return 0, errors.New("difficulty out of representable range")
+	}
+	return float64(exp) + math.Log2(m), nil
 }
 
 func zBitsFromDifficulty(difficulty float64) (float64, error) {
@@ -1276,51 +1355,80 @@ func PlanSharenoteFromHashrate(hashrate HashrateValue, seconds float64, opts ...
 	}, nil
 }
 
-// CombineNotesSerial adds Z-bit difficulties (serial probability) and returns a new Sharenote.
+// CombineNotesSerial adds note difficulties (serial probability) and returns a
+// new Sharenote.
+//
+// Per SNIP-00 Appendix C the aggregation is performed with EXACT arithmetic:
+// each note's difficulty is taken as a *big.Rat and summed exactly, so the
+// result is independent of input ordering and free of the float64 accumulation
+// error that a running "total += diff" would introduce. The exact sum is stored
+// on the returned note's difficulty, and the display Z-bits are derived by
+// rounding that sum to float64 exactly once.
 func CombineNotesSerial(notes ...any) (Sharenote, error) {
 	if len(notes) == 0 {
 		return Sharenote{}, errors.New("notes slice must not be empty")
 	}
-	total := 0.0
+	total := new(big.Rat)
 	for _, note := range notes {
-		diff, err := difficultyFromNote(note)
+		diff, err := difficultyRatFromNote(note)
 		if err != nil {
 			return Sharenote{}, err
 		}
-		total += diff
+		total.Add(total, diff)
 	}
-	if !isFinite(total) || total <= 0 {
+	if total.Sign() <= 0 {
 		return NoteFromZBits(0)
 	}
-	zbits, err := zBitsFromDifficulty(total)
+	zbits, err := zBitsFromDifficultyRat(total)
 	if err != nil {
 		return Sharenote{}, err
 	}
-	return NoteFromZBits(zbits)
+	note, err := NoteFromZBits(zbits)
+	if err != nil {
+		return Sharenote{}, err
+	}
+	note.diffRat = total
+	return note, nil
 }
 
-// NoteDifference subtracts subtrahend Z-bit difficulty from the minuend (clamped at zero).
+// NoteDifference subtracts the subtrahend's difficulty from the minuend's
+// (clamped at the zero note). The subtraction is performed with exact rational
+// arithmetic to avoid float64 cancellation error.
 func NoteDifference(minuend, subtrahend any) (Sharenote, error) {
-	minDifficulty, err := difficultyFromNote(minuend)
+	minDifficulty, err := difficultyRatFromNote(minuend)
 	if err != nil {
 		return Sharenote{}, err
 	}
-	subDifficulty, err := difficultyFromNote(subtrahend)
+	subDifficulty, err := difficultyRatFromNote(subtrahend)
 	if err != nil {
 		return Sharenote{}, err
 	}
-	diff := minDifficulty - subDifficulty
-	if diff <= 0 {
+	diff := new(big.Rat).Sub(minDifficulty, subDifficulty)
+	if diff.Sign() <= 0 {
 		return NoteFromZBits(0)
 	}
-	zbits, err := zBitsFromDifficulty(diff)
+	zbits, err := zBitsFromDifficultyRat(diff)
 	if err != nil {
 		return Sharenote{}, err
 	}
-	return NoteFromZBits(zbits)
+	note, err := NoteFromZBits(zbits)
+	if err != nil {
+		return Sharenote{}, err
+	}
+	note.diffRat = diff
+	return note, nil
 }
 
-// ScaleNote multiplies a note's Z-bit difficulty by the given factor.
+// ScaleNote multiplies a note's difficulty by the given factor using exact
+// rational arithmetic.
+//
+// Semantics (no clamp): the difficulty is multiplied by the factor directly. A
+// factor of exactly 0 yields the zero note (0Z00). This function deliberately
+// does NOT clamp sub-unit results up to 0Z00 — i.e. it does not implement the
+// "if <1 hash, snap to 0Z00" rule. This matches the Go/JS majority behaviour.
+// A positive factor that drives the difficulty below one hash (Z-bits < 0) is
+// outside the representable Sharenote range and is reported as an error rather
+// than being silently snapped to 0Z00.
 func ScaleNote(note any, factor float64) (Sharenote, error) {
 	if !isFinite(factor) {
 		return Sharenote{}, errors.New("factor must be finite")
@@ -1331,31 +1439,46 @@ func ScaleNote(note any, factor float64) (Sharenote, error) {
 	if factor == 0 {
 		return NoteFromZBits(0)
 	}
-	difficulty, err := difficultyFromNote(note)
+	difficulty, err := difficultyRatFromNote(note)
 	if err != nil {
 		return Sharenote{}, err
 	}
-	zbits, err := zBitsFromDifficulty(difficulty * factor)
+	factorRat := new(big.Rat).SetFloat64(factor)
+	if factorRat == nil {
+		return Sharenote{}, errors.New("factor must be finite")
+	}
+	scaled := new(big.Rat).Mul(difficulty, factorRat)
+	if scaled.Sign() <= 0 {
+		return NoteFromZBits(0)
+	}
+	zbits, err := zBitsFromDifficultyRat(scaled)
 	if err != nil {
 		return Sharenote{}, err
 	}
-	return NoteFromZBits(zbits)
+	note2, err := NoteFromZBits(zbits)
+	if err != nil {
+		return Sharenote{}, err
+	}
+	note2.diffRat = scaled
+	return note2, nil
 }
 
-// DivideNotes returns the ratio of two note Z-bit difficulties.
+// DivideNotes returns the ratio of two note difficulties, computed with exact
+// rational arithmetic and rounded to float64 once.
 func DivideNotes(numerator, denominator any) (float64, error) {
-	numDifficulty, err := difficultyFromNote(numerator)
+	numDifficulty, err := difficultyRatFromNote(numerator)
 	if err != nil {
 		return 0, err
 	}
-	denDifficulty, err := difficultyFromNote(denominator)
+	denDifficulty, err := difficultyRatFromNote(denominator)
 	if err != nil {
 		return 0, err
 	}
-	if denDifficulty <= 0 {
+	if denDifficulty.Sign() <= 0 {
 		return 0, errors.New("division by zero note")
 	}
-	return numDifficulty / denDifficulty, nil
+	ratio, _ := new(big.Rat).Quo(numDifficulty, denDifficulty).Float64()
+	return ratio, nil
 }
 
 // HashrateOption configures multiplier/reliability.

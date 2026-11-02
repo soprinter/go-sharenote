@@ -1031,6 +1031,150 @@
         "ratio": 1099511627776.0
       },
       "notes": "Difficulty ratio; denominator must have positive difficulty."
+    },
+    {
+      "name": "add_2Z00_plus_2Z00_exact_3Z00",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "2Z00",
+          "z_bits": 2.0,
+          "difficulty": 4.0,
+          "expected_hashes": 4.0,
+          "probability_per_hash": 0.25
+        },
+        {
+          "label": "2Z00",
+          "z_bits": 2.0,
+          "difficulty": 4.0,
+          "expected_hashes": 4.0,
+          "probability_per_hash": 0.25
+        }
+      ],
+      "expected": {
+        "label": "3Z00",
+        "z_bits": 3.0,
+        "difficulty": 8.0,
+        "expected_hashes": 8.0,
+        "probability_per_hash": 0.125
+      },
+      "notes": "Exact aggregation: 4 + 4 = 8 = 2^3, so two 2Z notes combine to exactly 3Z00."
+    },
+    {
+      "name": "add_29Z50_plus_29Z50_exact_30Z50",
+      "operation": "add",
+      "inputs": [
+        {
+          "label": "29Z50",
+          "z_bits": 29.5,
+          "difficulty": 759250124.9940124,
+          "expected_hashes": 759250124.9940124,
+          "probability_per_hash": 1.3170890159654384e-09
+        },
+        {
+          "label": "29Z50",
+          "z_bits": 29.5,
+          "difficulty": 759250124.9940124,
+          "expected_hashes": 759250124.9940124,
+          "probability_per_hash": 1.3170890159654384e-09
+        }
+      ],
+      "expected": {
+        "label": "30Z50",
+        "z_bits": 30.5,
+        "difficulty": 1518500249.9880247,
+        "expected_hashes": 1518500249.9880247,
+        "probability_per_hash": 6.585445079827192e-10
+      },
+      "notes": "Exact aggregation: doubling a note's difficulty adds exactly one whole Z (29Z50 + 29Z50 = 30Z50)."
+    },
+    {
+      "name": "add_eight_1Z00_exact_4Z00",
+      "operation": "add",
+      "inputs": [
+        { "label": "1Z00", "z_bits": 1.0, "difficulty": 2.0, "expected_hashes": 2.0, "probability_per_hash": 0.5 },
+        { "label": "1Z00", "z_bits": 1.0, "difficulty": 2.0, "expected_hashes": 2.0, "probability_per_hash": 0.5 },
+        { "label": "1Z00", "z_bits": 1.0, "difficulty": 2.0, "expected_hashes": 2.0, "probability_per_hash": 0.5 },
+        { "label": "1Z00", "z_bits": 1.0, "difficulty": 2.0, "expected_hashes": 2.0, "probability_per_hash": 0.5 },
+        { "label": "1Z00", "z_bits": 1.0, "difficulty": 2.0, "expected_hashes": 2.0, "probability_per_hash": 0.5 },
+        { "label": "1Z00", "z_bits": 1.0, "difficulty": 2.0, "expected_hashes": 2.0, "probability_per_hash": 0.5 },
+        { "label": "1Z00", "z_bits": 1.0, "difficulty": 2.0, "expected_hashes": 2.0, "probability_per_hash": 0.5 },
+        { "label": "1Z00", "z_bits": 1.0, "difficulty": 2.0, "expected_hashes": 2.0, "probability_per_hash": 0.5 }
+      ],
+      "expected": {
+        "label": "4Z00",
+        "z_bits": 4.0,
+        "difficulty": 16.0,
+        "expected_hashes": 16.0,
+        "probability_per_hash": 0.0625
+      },
+      "notes": "Exact aggregation over many identical notes: 8 x 2 = 16 = 2^4, must not drift due to float accumulation."
+    },
+    {
+      "name": "scale_2Z00_by_2_exact_3Z00",
+      "operation": "scale",
+      "inputs": {
+        "note": {
+          "label": "2Z00",
+          "z_bits": 2.0,
+          "difficulty": 4.0,
+          "expected_hashes": 4.0,
+          "probability_per_hash": 0.25
+        },
+        "factor": 2.0
+      },
+      "expected": {
+        "label": "3Z00",
+        "z_bits": 3.0,
+        "difficulty": 8.0,
+        "expected_hashes": 8.0,
+        "probability_per_hash": 0.125
+      },
+      "notes": "Multiply difficulty by factor (no clamp): 4 * 2 = 8 = 2^3."
+    },
+    {
+      "name": "scale_10Z00_by_8_exact_13Z00",
+      "operation": "scale",
+      "inputs": {
+        "note": {
+          "label": "10Z00",
+          "z_bits": 10.0,
+          "difficulty": 1024.0,
+          "expected_hashes": 1024.0,
+          "probability_per_hash": 0.0009765625
+        },
+        "factor": 8.0
+      },
+      "expected": {
+        "label": "13Z00",
+        "z_bits": 13.0,
+        "difficulty": 8192.0,
+        "expected_hashes": 8192.0,
+        "probability_per_hash": 0.0001220703125
+      },
+      "notes": "Multiply difficulty by factor (no clamp): 1024 * 8 = 8192 = 2^13."
+    },
+    {
+      "name": "scale_29Z50_by_0_5_exact_28Z50",
+      "operation": "scale",
+      "inputs": {
+        "note": {
+          "label": "29Z50",
+          "z_bits": 29.5,
+          "difficulty": 759250124.9940124,
+          "expected_hashes": 759250124.9940124,
+          "probability_per_hash": 1.3170890159654384e-09
+        },
+        "factor": 0.5
+      },
+      "expected": {
+        "label": "28Z50",
+        "z_bits": 28.5,
+        "difficulty": 379625062.4970062,
+        "expected_hashes": 379625062.4970062,
+        "probability_per_hash": 2.6341780319308768e-09
+      },
+      "notes": "Multiply difficulty by factor (no clamp): halving removes exactly one whole Z (29Z50 -> 28Z50)."
     }
   ]
 }
