@@ -1,0 +1,148 @@
+# Release workflow for github.com/soprinter/go-sharenote.
+#
+# Mirrors the ohstr release pattern: workflow_dispatch only, driven by
+# CHANGELOG.md. No git push or tag event ever triggers a release -- a release
+# is cut by hand from this workflow's "Run workflow" button.
+#
+# NOTE: Go has NO package registry to publish to -- a pushed `vX.Y.Z` tag IS
+# the release. This workflow resolves the version from CHANGELOG.md (or the
+# dispatch input), asserts it matches the VERSION file, runs the CI gate,
+# creates and pushes the `vX.Y.Z` tag, creates the GitHub Release with the
+# CHANGELOG.md notes, and warms the Go module proxy so `go get`/`go list`
+# resolves the new version immediately.
+#
+# Auth model: NO external secret. GITHUB_TOKEN is injected automatically by
+# Actions; we only grant it `contents: write` so it can push the tag and
+# create the Release.
+#
+# ONE-TIME MAINTAINER SETUP: none. To release, bump the VERSION file (e.g. to
+# v0.1.4) and add the matching "## [0.1.4]" section to CHANGELOG.md, commit,
+# then run this workflow.
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: >-
+          Version to release (e.g. 0.1.3, no "v" prefix). Leave blank to use
+          the topmost "## [X.Y.Z]" heading in CHANGELOG.md.
+        required: false
+        type: string
+
+permissions:
+  contents: write   # lets GITHUB_TOKEN push the tag and create the Release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      # Build/test gate, same commands as .github/workflows/ci.yml. A
+      # release is never cut from a state that wouldn't also pass CI.
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      # No git event ever triggers a release by itself (see `on:` above,
+      # workflow_dispatch only) and GitHub never auto-writes the release
+      # notes: they always come from CHANGELOG.md, maintained by hand as
+      # part of normal development.
+      - name: Resolve version and notes from CHANGELOG.md
+        id: changelog
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          VERSION="$VERSION_INPUT"
+          if [ -z "$VERSION" ]; then
+            TOP_HEADING=$(grep -m1 -oP '^## \[\K[^\]]+' CHANGELOG.md || true)
+            if [ "$TOP_HEADING" = "Unreleased" ]; then
+              echo "::error::Topmost CHANGELOG.md heading is '## [Unreleased]' - rename it to the version being released (e.g. '## [0.1.4]') and commit that before running this workflow, or pass the version input explicitly"
+              exit 1
+            fi
+            VERSION="$TOP_HEADING"
+          fi
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not resolve a version: no version input given and no '## [X.Y.Z]' heading found in CHANGELOG.md"
+            exit 1
+          fi
+
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > /tmp/notes.raw
+
+          # Trim leading/trailing blank lines.
+          sed -e '/./,$!d' -e ':a' -e '/^\n*$/{$d;N;ba' -e '}' /tmp/notes.raw > /tmp/release-notes.md
+
+          if [ ! -s /tmp/release-notes.md ]; then
+            echo "::error::No changelog entry found for version $VERSION in CHANGELOG.md (heading missing or section is empty)"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Resolved release version: $VERSION"
+          echo "--- release notes ---"
+          cat /tmp/release-notes.md
+
+      # The VERSION file (with a leading "v") is the source of truth for the
+      # tag, so guard that it matches the CHANGELOG-resolved version (which,
+      # per Keep-a-Changelog, has no "v" prefix).
+      - name: Assert VERSION file matches
+        env:
+          VERSION: ${{ steps.changelog.outputs.version }}
+        run: |
+          FILE_VERSION="$(tr -d '[:space:]' < VERSION)"
+          if [ "$FILE_VERSION" != "v$VERSION" ]; then
+            echo "::error::VERSION file ($FILE_VERSION) does not match the release version (v$VERSION) - update VERSION and commit it before releasing"
+            exit 1
+          fi
+
+      - name: Tag release
+        env:
+          VERSION: ${{ steps.changelog.outputs.version }}
+          ACTOR: ${{ github.actor }}
+          ACTOR_EMAIL: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
+        run: |
+          git config user.name "$ACTOR"
+          git config user.email "$ACTOR_EMAIL"
+
+          # Re-running a release (e.g. after a failed later step) should
+          # replace the existing tag rather than fail, both locally and on
+          # the remote.
+          git tag -d "v$VERSION" 2>/dev/null || true
+          git push origin ":refs/tags/v$VERSION" 2>/dev/null || true
+
+          # The tag's own annotation message is the same CHANGELOG.md section
+          # as the Release notes below (-F, not -m "v$VERSION").
+          git tag -a "v$VERSION" -F /tmp/release-notes.md
+          git push origin "v$VERSION"
+
+      # The pushed tag above is the real release; this just records it on
+      # GitHub with the CHANGELOG.md section as its notes.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.changelog.outputs.version }}
+        run: gh release create "v$VERSION" --title "v$VERSION" --notes-file /tmp/release-notes.md
+
+      - name: Warm the Go module proxy (best-effort)
+        env:
+          VERSION: ${{ steps.changelog.outputs.version }}
+        run: |
+          tmp="$(mktemp -d)"
+          cd "$tmp"
+          go mod init scratch >/dev/null 2>&1 || true
+          GOPROXY=proxy.golang.org GONOSUMCHECK=0 \
+            go list -m "github.com/soprinter/go-sharenote@v${VERSION}" || true
