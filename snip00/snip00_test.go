@@ -769,6 +769,9 @@ func TestArithmeticVectorsFromJSON(t *testing.T) {
 			if !roughlyEqual(result.ZBits, expected.ZBits) {
 				t.Fatalf("case %s zbits: got %f want %f", tc.Name, result.ZBits, expected.ZBits)
 			}
+			if expected.Difficulty > 0 && !roughlyEqual(math.Pow(2, result.ZBits), expected.Difficulty) {
+				t.Fatalf("case %s difficulty mismatch: got %g want %g", tc.Name, math.Pow(2, result.ZBits), expected.Difficulty)
+			}
 		case "scale":
 			var inputs scaleInputs
 			var expected vectorNote
@@ -787,6 +790,9 @@ func TestArithmeticVectorsFromJSON(t *testing.T) {
 			}
 			if !roughlyEqual(result.ZBits, expected.ZBits) {
 				t.Fatalf("case %s zbits: got %f want %f", tc.Name, result.ZBits, expected.ZBits)
+			}
+			if expected.Difficulty > 0 && !roughlyEqual(math.Pow(2, result.ZBits), expected.Difficulty) {
+				t.Fatalf("case %s difficulty mismatch: got %g want %g", tc.Name, math.Pow(2, result.ZBits), expected.Difficulty)
 			}
 		case "divide":
 			var inputs divideInputs
@@ -810,6 +816,120 @@ func TestArithmeticVectorsFromJSON(t *testing.T) {
 		default:
 			t.Fatalf("unknown operation %s", tc.Operation)
 		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Exact-arithmetic aggregation (SNIP-00 Appendix C)
+// ---------------------------------------------------------------------------
+
+// TestCombineNotesSerialExact asserts that serial aggregation uses exact
+// rational arithmetic rather than a float64 accumulator: the combined note's
+// stored difficulty must equal the exact integer/rational sum of the inputs.
+func TestCombineNotesSerialExact(t *testing.T) {
+	// 2Z00 + 2Z00 = 3Z00 exactly (4 + 4 = 8 = 2^3).
+	combined, err := CombineNotesSerial("2Z00", "2Z00")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if combined.Label() != "3Z00" {
+		t.Fatalf("2Z00+2Z00 label: got %s want 3Z00", combined.Label())
+	}
+	if got := combined.DifficultyRat(); got.Cmp(big.NewRat(8, 1)) != 0 {
+		t.Fatalf("2Z00+2Z00 exact difficulty: got %s want 8", got.RatString())
+	}
+
+	// Eight 1Z00 notes = 4Z00 exactly (8 * 2 = 16 = 2^4) with no float drift.
+	eight := make([]any, 8)
+	for i := range eight {
+		eight[i] = "1Z00"
+	}
+	combined8, err := CombineNotesSerial(eight...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if combined8.Label() != "4Z00" {
+		t.Fatalf("8x1Z00 label: got %s want 4Z00", combined8.Label())
+	}
+	if got := combined8.DifficultyRat(); got.Cmp(big.NewRat(16, 1)) != 0 {
+		t.Fatalf("8x1Z00 exact difficulty: got %s want 16", got.RatString())
+	}
+}
+
+// TestCombineNotesSerialNoFloatAbsorption demonstrates the concrete win of
+// exact arithmetic: adding a tiny note to a huge one preserves the tiny
+// contribution, whereas a float64 accumulator would absorb (lose) it.
+func TestCombineNotesSerialNoFloatAbsorption(t *testing.T) {
+	// 60Z00 has difficulty 2^60; adding 1Z00 (difficulty 2) must land exactly
+	// on 2^60 + 2. In float64, 2^60 + 2.0 == 2^60 (the 2 is below one ULP).
+	huge := new(big.Int).Lsh(big.NewInt(1), 60) // 2^60
+	if float64(huge.Int64())+2.0 != float64(huge.Int64()) {
+		t.Fatalf("precondition failed: float64 should absorb +2 at 2^60")
+	}
+	want := new(big.Rat).SetInt(new(big.Int).Add(huge, big.NewInt(2))) // 2^60 + 2
+
+	combined, err := CombineNotesSerial("60Z00", "1Z00")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := combined.DifficultyRat(); got.Cmp(want) != 0 {
+		t.Fatalf("exact difficulty: got %s want %s", got.RatString(), want.RatString())
+	}
+	if combined.Label() != "60Z00" {
+		t.Fatalf("label: got %s want 60Z00", combined.Label())
+	}
+}
+
+// TestCombineNotesSerialOrderIndependent confirms that exact aggregation is
+// independent of input ordering (no order-dependent float rounding).
+func TestCombineNotesSerialOrderIndependent(t *testing.T) {
+	labels := []any{"60Z99", "1Z00", "42Z76", "33Z53", "35Z14", "34Z76"}
+	reversed := make([]any, len(labels))
+	for i, l := range labels {
+		reversed[len(labels)-1-i] = l
+	}
+	a, err := CombineNotesSerial(labels...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := CombineNotesSerial(reversed...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a.DifficultyRat().Cmp(b.DifficultyRat()) != 0 {
+		t.Fatalf("aggregation not order-independent: %s vs %s", a.DifficultyRat().RatString(), b.DifficultyRat().RatString())
+	}
+	if a.Label() != b.Label() {
+		t.Fatalf("labels differ by order: %s vs %s", a.Label(), b.Label())
+	}
+}
+
+// TestScaleNoteExactNoClamp documents the reconciled scale semantics: difficulty
+// is multiplied directly with no clamp, and sub-unit results are reported as an
+// error rather than snapped to 0Z00 (except an explicit factor of 0).
+func TestScaleNoteExactNoClamp(t *testing.T) {
+	scaled, err := ScaleNote("2Z00", 2.0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if scaled.Label() != "3Z00" || scaled.DifficultyRat().Cmp(big.NewRat(8, 1)) != 0 {
+		t.Fatalf("scale 2Z00 by 2: got %s (%s) want 3Z00 (8)", scaled.Label(), scaled.DifficultyRat().RatString())
+	}
+
+	// factor 0 collapses to the zero note.
+	zero, err := ScaleNote("10Z00", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if zero.Label() != "0Z00" {
+		t.Fatalf("scale by 0: got %s want 0Z00", zero.Label())
+	}
+
+	// No clamp: scaling 1Z00 (difficulty 2) by 0.25 yields difficulty 0.5 < 1,
+	// i.e. negative Z-bits, which is outside the representable range and errors
+	// instead of snapping to 0Z00.
+	if _, err := ScaleNote("1Z00", 0.25); err == nil {
+		t.Fatalf("expected error for sub-unit scaled difficulty (no clamp)")
 	}
 }
 
