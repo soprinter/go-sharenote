@@ -1,0 +1,226 @@
+{
+  "fixture": "sdk_edge_tests",
+  "purpose": "Canonical edge-case vectors for decisions D1-D4 of the SDK remediation. Siblings of snip00_tests.json; byte-identical across go-sharenote/testdata, sharenotejs, sharenotelib. See followup/VALIDATION-CONTRACT.md for the schema.",
+  "spec_reference": "NIP-SN §Z-Arithmetic (A1, A2); decisions D1-D4",
+  "amount_units": "Integer amounts are in the coin's base unit (its smallest unit; satoshi on Bitcoin as an example).",
+  "operand_coercion": "A D1 operand is {\"label\": \"<NNZcc>\"} (continuous z-bits = z + cents*0.01) or {\"z_bits\": <float64>} (label floor derived from it).",
+  "cases": [
+    {
+      "name": "d1_same_label_diff_zbits_equal",
+      "decision": "D1",
+      "operation": "compare",
+      "inputs": {
+        "a": {
+          "label": "34Z10"
+        },
+        "b": {
+          "z_bits": 34.1057
+        }
+      },
+      "expected": {
+        "cmp": 0
+      },
+      "notes": "Both float to label 34Z10, so they are EQUAL even though continuous z-bits differ. A by-z_bits comparator wrongly returns -1."
+    },
+    {
+      "name": "d1_same_label_diff_zbits_equal_2",
+      "decision": "D1",
+      "operation": "compare",
+      "inputs": {
+        "a": {
+          "z_bits": 34.109999
+        },
+        "b": {
+          "z_bits": 34.100001
+        }
+      },
+      "expected": {
+        "cmp": 0
+      },
+      "notes": "Same label 34Z10 from two different continuous values; equal. A by-z_bits comparator wrongly returns 1."
+    },
+    {
+      "name": "d1_same_z_lower_cents",
+      "decision": "D1",
+      "operation": "compare",
+      "inputs": {
+        "a": {
+          "label": "34Z10"
+        },
+        "b": {
+          "label": "34Z11"
+        }
+      },
+      "expected": {
+        "cmp": -1
+      },
+      "notes": "Same z, 10 < 11 cents."
+    },
+    {
+      "name": "d1_same_z_higher_cents",
+      "decision": "D1",
+      "operation": "compare",
+      "inputs": {
+        "a": {
+          "label": "34Z11"
+        },
+        "b": {
+          "label": "34Z10"
+        }
+      },
+      "expected": {
+        "cmp": 1
+      },
+      "notes": "Same z, 11 > 10 cents."
+    },
+    {
+      "name": "d1_higher_z_wins",
+      "decision": "D1",
+      "operation": "compare",
+      "inputs": {
+        "a": {
+          "label": "35Z00"
+        },
+        "b": {
+          "label": "34Z99"
+        }
+      },
+      "expected": {
+        "cmp": 1
+      },
+      "notes": "z 35 > 34 dominates the cents."
+    },
+    {
+      "name": "d1_lower_z_loses",
+      "decision": "D1",
+      "operation": "compare",
+      "inputs": {
+        "a": {
+          "label": "34Z99"
+        },
+        "b": {
+          "label": "35Z00"
+        }
+      },
+      "expected": {
+        "cmp": -1
+      },
+      "notes": "z 34 < 35."
+    },
+    {
+      "name": "d1_identical_labels_equal",
+      "decision": "D1",
+      "operation": "compare",
+      "inputs": {
+        "a": {
+          "label": "34Z10"
+        },
+        "b": {
+          "label": "34Z10"
+        }
+      },
+      "expected": {
+        "cmp": 0
+      },
+      "notes": "Identical labels."
+    },
+    {
+      "name": "d2_near_integer_clamps_to_99",
+      "decision": "D2",
+      "operation": "label_from_zbits",
+      "inputs": {
+        "z_bits": 33.99999999999999
+      },
+      "expected": {
+        "label": "33Z99",
+        "z": 33,
+        "cents": 99
+      },
+      "notes": "z_bits is the float64 just below 34 (0x1.0ffffffffffffp+5 = nextafter(34,0)). The pricing-floor epsilon makes raw cents compute to 100, which MUST clamp to 99 -> 33Z99 (NIP-SN Discrete Denomination step 3). The buggy carry branch wrongly yields 34Z00."
+    },
+    {
+      "name": "d3_fold_combined_note_exact",
+      "decision": "D3",
+      "operation": "combine",
+      "inputs": {
+        "steps": [
+          {
+            "combine": [
+              "53Z00",
+              "1Z00"
+            ]
+          },
+          {
+            "combine": [
+              "$0",
+              "1Z00"
+            ]
+          }
+        ],
+        "result_step": 1
+      },
+      "expected": {
+        "label": "53Z00",
+        "exact_difficulty_decimal": "9007199254740996",
+        "exact_dyadic": {
+          "sig": "2251799813685249",
+          "exp": 2
+        },
+        "difficulty": 9007199254740996.0,
+        "intermediate_step0_decimal": "9007199254740994"
+      },
+      "notes": "Step 0 combines to exactly 2^53+2 (=9007199254740994). Folding that result back with 1Z00 MUST yield exactly 2^53+4 (=9007199254740996). Re-deriving the folded note's difficulty from its display z-bits collapses to 2^53+2 (off by one note). The implementation MUST carry the stored exact difficulty into the next combine (A1)."
+    },
+    {
+      "name": "d4_invoice_amount_2pow53_plus_1",
+      "decision": "D4",
+      "operation": "integer_roundtrip",
+      "context": {
+        "kind": 35500,
+        "tag": "amount"
+      },
+      "inputs": {
+        "wire": "9007199254740993"
+      },
+      "expected": {
+        "value": "9007199254740993",
+        "float64_would_give": "9007199254740992"
+      },
+      "notes": "2^53+1 base units must round-trip exactly; a float64/JS number parser loses the +1."
+    },
+    {
+      "name": "d4_payment_amount_max_int64",
+      "decision": "D4",
+      "operation": "integer_roundtrip",
+      "context": {
+        "kind": 35505,
+        "tag": "amount"
+      },
+      "inputs": {
+        "wire": "9223372036854775807"
+      },
+      "expected": {
+        "value": "9223372036854775807",
+        "float64_would_give": "9223372036854775808"
+      },
+      "notes": "max int64 (2^63-1); a float64 parser rounds up and overflows."
+    },
+    {
+      "name": "d4_threshold_above_2pow53",
+      "decision": "D4",
+      "operation": "integer_roundtrip",
+      "context": {
+        "kind": 10521,
+        "tag": "threshold"
+      },
+      "inputs": {
+        "wire": "100000000000000001"
+      },
+      "expected": {
+        "value": "100000000000000001",
+        "float64_would_give": "100000000000000000"
+      },
+      "notes": "1e17+1 base units; a float64 parser drops the +1."
+    }
+  ]
+}

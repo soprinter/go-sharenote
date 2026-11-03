@@ -1,0 +1,1275 @@
+{
+  "fixture": "validation_tests",
+  "purpose": "Forged/invalid events that every SDK validate() MUST reject, plus genuinely-valid control events it MUST accept. One entry per MUST-check in the NIP-SN validation union. Byte-identical across go-sharenote/testdata, sharenotejs, sharenotelib. See followup/VALIDATION-CONTRACT.md for the schema and the full MUST-set checklist.",
+  "spec_reference": "NIP-SN §Validation Constraints A5-A16; decision D5",
+  "amount_units": "Integer amounts are in the coin's base unit (its smallest unit; satoshi on Bitcoin as an example).",
+  "anchors": {
+    "height": 843000,
+    "address": "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a",
+    "height_hash_blake2b256": "9d83d89f11bc0b930935e9a58e93ac1e43cdcaf25e8e4d68dc4c96763208f479",
+    "pending_share_id": "bb36d07ab1d2599fa24f174d52e36d6b1593eeddcbde3aad94878fd1a929b763",
+    "finalized_share_id": "4c5a68c2ebcd6e180beefb309b1861708547a6622355da508cc4cad946a43bf0",
+    "raw_header_hex": "00000020605f4e3d2c1b0af9e8d7c6b5a4938271605f4e3d2c1b0a00000000000000000091807f6e5d4c3b2a1908f7e6d5c4b3a291807f6e5d4c3b2a1f0e9d8c7b6a2f4d00000066db3103179e2dc501",
+    "raw_header_hash": "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe",
+    "raw_header_leading_zero_bits": 30,
+    "note": "All hashes recomputed by the generator: HeightHash/ShareID are unkeyed blake2b-256 of the shown string; raw_header_hash is the byte-reversed double-SHA256 of raw_header_hex."
+  },
+  "cases": [
+    {
+      "name": "valid_unpaid_invoice",
+      "assertion": "A7",
+      "kind": 35500,
+      "expect": "accept",
+      "check": "invoice_anchors",
+      "reason": "d==HeightHash(height), b is 32-byte hex, height>0, amount>0.",
+      "event": {
+        "kind": 35500,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "9d83d89f11bc0b930935e9a58e93ac1e43cdcaf25e8e4d68dc4c96763208f479"
+          ],
+          [
+            "b",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d"
+          ],
+          [
+            "height",
+            "843000"
+          ],
+          [
+            "amount",
+            "312500000"
+          ],
+          [
+            "workers",
+            "128"
+          ],
+          [
+            "shares",
+            "58Z42"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "invoice_wrong_height_hash",
+      "assertion": "A7",
+      "kind": 35500,
+      "expect": "reject",
+      "check": "coordinate_equality",
+      "reason": "d (HeightHash) does not equal blake2b-256(height).",
+      "event": {
+        "kind": 35500,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "4c5a68c2ebcd6e180beefb309b1861708547a6622355da508cc4cad946a43bf0"
+          ],
+          [
+            "b",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d"
+          ],
+          [
+            "height",
+            "843000"
+          ],
+          [
+            "amount",
+            "312500000"
+          ],
+          [
+            "workers",
+            "128"
+          ],
+          [
+            "shares",
+            "58Z42"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "invoice_non_hex_blockhash",
+      "assertion": "A7",
+      "kind": 35500,
+      "expect": "reject",
+      "check": "blockhash_hex",
+      "reason": "b is not a 32-byte (64-hex-char) key.",
+      "event": {
+        "kind": 35500,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "9d83d89f11bc0b930935e9a58e93ac1e43cdcaf25e8e4d68dc4c96763208f479"
+          ],
+          [
+            "b",
+            "deadbeef"
+          ],
+          [
+            "height",
+            "843000"
+          ],
+          [
+            "amount",
+            "312500000"
+          ],
+          [
+            "workers",
+            "128"
+          ],
+          [
+            "shares",
+            "58Z42"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "valid_settled_invoice",
+      "assertion": "A8",
+      "kind": 35501,
+      "expect": "accept",
+      "check": "settled_full_x",
+      "reason": "Carries full-form x and correct anchors.",
+      "event": {
+        "kind": 35501,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "9d83d89f11bc0b930935e9a58e93ac1e43cdcaf25e8e4d68dc4c96763208f479"
+          ],
+          [
+            "b",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d"
+          ],
+          [
+            "height",
+            "843000"
+          ],
+          [
+            "amount",
+            "312500000"
+          ],
+          [
+            "workers",
+            "128"
+          ],
+          [
+            "shares",
+            "58Z42"
+          ],
+          [
+            "x",
+            "9b1ec0de5a4f3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c",
+            "843006",
+            "000000000000000000019f2c7a3b4c5d6e7f8091a2b3c4d5e6f70819f2c7a3b4"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "settled_invoice_missing_full_x",
+      "assertion": "A8",
+      "kind": 35501,
+      "expect": "reject",
+      "check": "settled_full_x",
+      "reason": "35501 MUST carry a full-form x ([x,txid,height,hash]); this x is short form.",
+      "event": {
+        "kind": 35501,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "9d83d89f11bc0b930935e9a58e93ac1e43cdcaf25e8e4d68dc4c96763208f479"
+          ],
+          [
+            "b",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d"
+          ],
+          [
+            "height",
+            "843000"
+          ],
+          [
+            "amount",
+            "312500000"
+          ],
+          [
+            "workers",
+            "128"
+          ],
+          [
+            "shares",
+            "58Z42"
+          ],
+          [
+            "x",
+            "9b1ec0de5a4f3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "valid_pending_share",
+      "assertion": "A9,A10",
+      "kind": 35503,
+      "expect": "accept",
+      "check": "share_anchors",
+      "reason": "d==Hash(height,address,first_worker), h==HeightHash, b hex, >=1 worker.",
+      "event": {
+        "kind": 35503,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "bb36d07ab1d2599fa24f174d52e36d6b1593eeddcbde3aad94878fd1a929b763"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a"
+          ],
+          [
+            "h",
+            "9d83d89f11bc0b930935e9a58e93ac1e43cdcaf25e8e4d68dc4c96763208f479"
+          ],
+          [
+            "b",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d"
+          ],
+          [
+            "chain",
+            "15"
+          ],
+          [
+            "workers",
+            "rig-01",
+            "rig-02"
+          ],
+          [
+            "height",
+            "843000"
+          ],
+          [
+            "amount",
+            "2441406"
+          ],
+          [
+            "shares",
+            "34Z10",
+            "128"
+          ],
+          [
+            "totalshares",
+            "58Z42",
+            "16384"
+          ],
+          [
+            "timestamp",
+            "1743638400123"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "valid_share_payment",
+      "assertion": "A9,A10,A13",
+      "kind": 35505,
+      "expect": "accept",
+      "check": "payment_settlement",
+      "reason": "d==Hash(height,address), h==HeightHash, chain present, full-form x.",
+      "event": {
+        "kind": 35505,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "4c5a68c2ebcd6e180beefb309b1861708547a6622355da508cc4cad946a43bf0"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a"
+          ],
+          [
+            "h",
+            "9d83d89f11bc0b930935e9a58e93ac1e43cdcaf25e8e4d68dc4c96763208f479"
+          ],
+          [
+            "b",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d"
+          ],
+          [
+            "chain",
+            "15"
+          ],
+          [
+            "workers",
+            "rig-01",
+            "rig-02"
+          ],
+          [
+            "height",
+            "843000"
+          ],
+          [
+            "amount",
+            "2440906"
+          ],
+          [
+            "shares",
+            "34Z10",
+            "128"
+          ],
+          [
+            "totalshares",
+            "58Z42",
+            "16384"
+          ],
+          [
+            "timestamp",
+            "1743639000789"
+          ],
+          [
+            "fee",
+            "500"
+          ],
+          [
+            "x",
+            "9b1ec0de5a4f3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c",
+            "843006",
+            "000000000000000000019f2c7a3b4c5d6e7f8091a2b3c4d5e6f70819f2c7a3b4"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "share_wrong_share_id",
+      "assertion": "A10",
+      "kind": 35504,
+      "expect": "reject",
+      "check": "coordinate_equality",
+      "reason": "35504 d MUST equal Hash(height,address); this carries the pending Hash(height,address,worker) instead.",
+      "event": {
+        "kind": 35504,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "bb36d07ab1d2599fa24f174d52e36d6b1593eeddcbde3aad94878fd1a929b763"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a"
+          ],
+          [
+            "h",
+            "9d83d89f11bc0b930935e9a58e93ac1e43cdcaf25e8e4d68dc4c96763208f479"
+          ],
+          [
+            "b",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d"
+          ],
+          [
+            "chain",
+            "15"
+          ],
+          [
+            "workers",
+            "rig-01",
+            "rig-02"
+          ],
+          [
+            "height",
+            "843000"
+          ],
+          [
+            "amount",
+            "2441406"
+          ],
+          [
+            "shares",
+            "34Z10",
+            "128"
+          ],
+          [
+            "totalshares",
+            "58Z42",
+            "16384"
+          ],
+          [
+            "timestamp",
+            "1743638500456"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "share_wrong_height_hash",
+      "assertion": "A9",
+      "kind": 35505,
+      "expect": "reject",
+      "check": "coordinate_equality",
+      "reason": "h (HeightHash) does not equal blake2b-256(height).",
+      "event": {
+        "kind": 35505,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "4c5a68c2ebcd6e180beefb309b1861708547a6622355da508cc4cad946a43bf0"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a"
+          ],
+          [
+            "h",
+            "bb36d07ab1d2599fa24f174d52e36d6b1593eeddcbde3aad94878fd1a929b763"
+          ],
+          [
+            "b",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d"
+          ],
+          [
+            "chain",
+            "15"
+          ],
+          [
+            "workers",
+            "rig-01",
+            "rig-02"
+          ],
+          [
+            "height",
+            "843000"
+          ],
+          [
+            "amount",
+            "2440906"
+          ],
+          [
+            "shares",
+            "34Z10",
+            "128"
+          ],
+          [
+            "totalshares",
+            "58Z42",
+            "16384"
+          ],
+          [
+            "timestamp",
+            "1743639000789"
+          ],
+          [
+            "fee",
+            "500"
+          ],
+          [
+            "x",
+            "9b1ec0de5a4f3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c",
+            "843006",
+            "000000000000000000019f2c7a3b4c5d6e7f8091a2b3c4d5e6f70819f2c7a3b4"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "share_non_hex_blockhash",
+      "assertion": "A9",
+      "kind": 35503,
+      "expect": "reject",
+      "check": "blockhash_hex",
+      "reason": "b is not a 32-byte (64-hex-char) key.",
+      "event": {
+        "kind": 35503,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "bb36d07ab1d2599fa24f174d52e36d6b1593eeddcbde3aad94878fd1a929b763"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a"
+          ],
+          [
+            "h",
+            "9d83d89f11bc0b930935e9a58e93ac1e43cdcaf25e8e4d68dc4c96763208f479"
+          ],
+          [
+            "b",
+            "deadbeef"
+          ],
+          [
+            "chain",
+            "15"
+          ],
+          [
+            "workers",
+            "rig-01",
+            "rig-02"
+          ],
+          [
+            "height",
+            "843000"
+          ],
+          [
+            "amount",
+            "2441406"
+          ],
+          [
+            "shares",
+            "34Z10",
+            "128"
+          ],
+          [
+            "totalshares",
+            "58Z42",
+            "16384"
+          ],
+          [
+            "timestamp",
+            "1743638400123"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "payment_missing_chain",
+      "assertion": "A13",
+      "kind": 35505,
+      "expect": "reject",
+      "check": "payment_chain_required",
+      "reason": "35505 MUST carry a chain tag (D5: require + error; no silent auto-inject of \"15\").",
+      "event": {
+        "kind": 35505,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "4c5a68c2ebcd6e180beefb309b1861708547a6622355da508cc4cad946a43bf0"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a"
+          ],
+          [
+            "h",
+            "9d83d89f11bc0b930935e9a58e93ac1e43cdcaf25e8e4d68dc4c96763208f479"
+          ],
+          [
+            "b",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d"
+          ],
+          [
+            "workers",
+            "rig-01",
+            "rig-02"
+          ],
+          [
+            "height",
+            "843000"
+          ],
+          [
+            "amount",
+            "2440906"
+          ],
+          [
+            "shares",
+            "34Z10",
+            "128"
+          ],
+          [
+            "totalshares",
+            "58Z42",
+            "16384"
+          ],
+          [
+            "timestamp",
+            "1743639000789"
+          ],
+          [
+            "fee",
+            "500"
+          ],
+          [
+            "x",
+            "9b1ec0de5a4f3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c",
+            "843006",
+            "000000000000000000019f2c7a3b4c5d6e7f8091a2b3c4d5e6f70819f2c7a3b4"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "payment_short_form_x",
+      "assertion": "A13",
+      "kind": 35505,
+      "expect": "reject",
+      "check": "payment_settlement",
+      "reason": "35505 x MUST be full form; this is short form (unconfirmed).",
+      "event": {
+        "kind": 35505,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "4c5a68c2ebcd6e180beefb309b1861708547a6622355da508cc4cad946a43bf0"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a"
+          ],
+          [
+            "h",
+            "9d83d89f11bc0b930935e9a58e93ac1e43cdcaf25e8e4d68dc4c96763208f479"
+          ],
+          [
+            "b",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d"
+          ],
+          [
+            "chain",
+            "15"
+          ],
+          [
+            "workers",
+            "rig-01",
+            "rig-02"
+          ],
+          [
+            "height",
+            "843000"
+          ],
+          [
+            "amount",
+            "2440906"
+          ],
+          [
+            "shares",
+            "34Z10",
+            "128"
+          ],
+          [
+            "totalshares",
+            "58Z42",
+            "16384"
+          ],
+          [
+            "timestamp",
+            "1743639000789"
+          ],
+          [
+            "fee",
+            "500"
+          ],
+          [
+            "x",
+            "9b1ec0de5a4f3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "valid_raw_sharenote",
+      "assertion": "A14",
+      "kind": 35510,
+      "expect": "accept",
+      "check": "raw_header",
+      "primary_chain_id": "15",
+      "reason": "double-SHA256(dd) reversed == d (clause 1) AND the hash clears the z=26z00 bound (clause 2); primary chain first; dd last.",
+      "event": {
+        "kind": 35510,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a",
+            "antminer-s19",
+            "bmminer/2.0.0"
+          ],
+          [
+            "z",
+            "26z00"
+          ],
+          [
+            "w",
+            "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe",
+            "15",
+            "843000",
+            "true",
+            "26z00"
+          ],
+          [
+            "w",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+            "2a",
+            "110000",
+            "false",
+            "22z00"
+          ],
+          [
+            "dd",
+            "00000020605f4e3d2c1b0af9e8d7c6b5a4938271605f4e3d2c1b0a00000000000000000091807f6e5d4c3b2a1908f7e6d5c4b3a291807f6e5d4c3b2a1f0e9d8c7b6a2f4d00000066db3103179e2dc501"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "raw_header_hash_mismatch",
+      "assertion": "A14",
+      "kind": 35510,
+      "expect": "reject",
+      "check": "raw_header_hash_clause1",
+      "primary_chain_id": "15",
+      "reason": "double-SHA256(dd) reversed != d (A14 clause 1).",
+      "event": {
+        "kind": 35510,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "ff00000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a",
+            "antminer-s19",
+            "bmminer/2.0.0"
+          ],
+          [
+            "z",
+            "26z00"
+          ],
+          [
+            "w",
+            "ff00000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe",
+            "15",
+            "843000",
+            "true",
+            "26z00"
+          ],
+          [
+            "w",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+            "2a",
+            "110000",
+            "false",
+            "22z00"
+          ],
+          [
+            "dd",
+            "00000020605f4e3d2c1b0af9e8d7c6b5a4938271605f4e3d2c1b0a00000000000000000091807f6e5d4c3b2a1908f7e6d5c4b3a291807f6e5d4c3b2a1f0e9d8c7b6a2f4d00000066db3103179e2dc501"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "raw_hash_below_z_bound",
+      "assertion": "A14",
+      "kind": 35510,
+      "expect": "reject",
+      "check": "raw_header_zbound_clause2",
+      "primary_chain_id": "15",
+      "reason": "Header hash matches dd (clause 1 passes) but does NOT clear the z=34z00 leading-zero bound (A14 clause 2, the clause currently missing in all three SDKs).",
+      "event": {
+        "kind": 35510,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a",
+            "antminer-s19",
+            "bmminer/2.0.0"
+          ],
+          [
+            "z",
+            "34z00"
+          ],
+          [
+            "w",
+            "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe",
+            "15",
+            "843000",
+            "true",
+            "34z00"
+          ],
+          [
+            "w",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+            "2a",
+            "110000",
+            "false",
+            "22z00"
+          ],
+          [
+            "dd",
+            "00000020605f4e3d2c1b0af9e8d7c6b5a4938271605f4e3d2c1b0a00000000000000000091807f6e5d4c3b2a1908f7e6d5c4b3a291807f6e5d4c3b2a1f0e9d8c7b6a2f4d00000066db3103179e2dc501"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "raw_w_tag_wrong_arity",
+      "assertion": "A14",
+      "kind": 35510,
+      "expect": "reject",
+      "check": "raw_w_arity",
+      "primary_chain_id": "15",
+      "reason": "A w entry has 5 elements; each MUST have exactly six.",
+      "event": {
+        "kind": 35510,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a",
+            "antminer-s19",
+            "bmminer/2.0.0"
+          ],
+          [
+            "z",
+            "26z00"
+          ],
+          [
+            "w",
+            "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe",
+            "15",
+            "843000",
+            "true"
+          ],
+          [
+            "dd",
+            "00000020605f4e3d2c1b0af9e8d7c6b5a4938271605f4e3d2c1b0a00000000000000000091807f6e5d4c3b2a1908f7e6d5c4b3a291807f6e5d4c3b2a1f0e9d8c7b6a2f4d00000066db3103179e2dc501"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "raw_missing_primary",
+      "assertion": "A14",
+      "kind": 35510,
+      "expect": "reject",
+      "check": "raw_primary_present",
+      "primary_chain_id": "99",
+      "reason": "The declared primary chain (99) is absent from the w branches.",
+      "event": {
+        "kind": 35510,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a",
+            "antminer-s19",
+            "bmminer/2.0.0"
+          ],
+          [
+            "z",
+            "26z00"
+          ],
+          [
+            "w",
+            "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe",
+            "15",
+            "843000",
+            "true",
+            "26z00"
+          ],
+          [
+            "w",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+            "2a",
+            "110000",
+            "false",
+            "22z00"
+          ],
+          [
+            "dd",
+            "00000020605f4e3d2c1b0af9e8d7c6b5a4938271605f4e3d2c1b0a00000000000000000091807f6e5d4c3b2a1908f7e6d5c4b3a291807f6e5d4c3b2a1f0e9d8c7b6a2f4d00000066db3103179e2dc501"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "raw_primary_not_first",
+      "assertion": "A14",
+      "kind": 35510,
+      "expect": "reject",
+      "check": "raw_primary_first",
+      "primary_chain_id": "15",
+      "reason": "The primary chain (15) is not the first w branch.",
+      "event": {
+        "kind": 35510,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a",
+            "antminer-s19",
+            "bmminer/2.0.0"
+          ],
+          [
+            "z",
+            "26z00"
+          ],
+          [
+            "w",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+            "2a",
+            "110000",
+            "false",
+            "22z00"
+          ],
+          [
+            "w",
+            "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe",
+            "15",
+            "843000",
+            "true",
+            "26z00"
+          ],
+          [
+            "dd",
+            "00000020605f4e3d2c1b0af9e8d7c6b5a4938271605f4e3d2c1b0a00000000000000000091807f6e5d4c3b2a1908f7e6d5c4b3a291807f6e5d4c3b2a1f0e9d8c7b6a2f4d00000066db3103179e2dc501"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "raw_z_not_lowercase",
+      "assertion": "A14",
+      "kind": 35510,
+      "expect": "reject",
+      "check": "raw_z_lowercase",
+      "primary_chain_id": "15",
+      "reason": "z MUST be lowercase; this is '26Z00'.",
+      "event": {
+        "kind": 35510,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a",
+            "antminer-s19",
+            "bmminer/2.0.0"
+          ],
+          [
+            "z",
+            "26Z00"
+          ],
+          [
+            "w",
+            "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe",
+            "15",
+            "843000",
+            "true",
+            "26z00"
+          ],
+          [
+            "w",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+            "2a",
+            "110000",
+            "false",
+            "22z00"
+          ],
+          [
+            "dd",
+            "00000020605f4e3d2c1b0af9e8d7c6b5a4938271605f4e3d2c1b0a00000000000000000091807f6e5d4c3b2a1908f7e6d5c4b3a291807f6e5d4c3b2a1f0e9d8c7b6a2f4d00000066db3103179e2dc501"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "raw_dd_not_last",
+      "assertion": "A14",
+      "kind": 35510,
+      "expect": "reject",
+      "check": "raw_dd_last",
+      "primary_chain_id": "15",
+      "reason": "dd MUST be the last tag; a w tag follows it here.",
+      "event": {
+        "kind": 35510,
+        "content": "",
+        "tags": [
+          [
+            "d",
+            "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe"
+          ],
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a",
+            "antminer-s19",
+            "bmminer/2.0.0"
+          ],
+          [
+            "z",
+            "26z00"
+          ],
+          [
+            "w",
+            "0000000288f122c9859094ea06dc2f713ad691610eadd6cb6dd386480f398bbe",
+            "15",
+            "843000",
+            "true",
+            "26z00"
+          ],
+          [
+            "dd",
+            "00000020605f4e3d2c1b0af9e8d7c6b5a4938271605f4e3d2c1b0a00000000000000000091807f6e5d4c3b2a1908f7e6d5c4b3a291807f6e5d4c3b2a1f0e9d8c7b6a2f4d00000066db3103179e2dc501"
+          ],
+          [
+            "w",
+            "000000000000000000023a1f1c9d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d",
+            "2a",
+            "110000",
+            "false",
+            "22z00"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "valid_miner_identity",
+      "assertion": "A5",
+      "kind": 10520,
+      "expect": "accept",
+      "check": "identity_chain_hex",
+      "reason": ">=1 three-element a tag, hex chain IDs, no duplicates.",
+      "event": {
+        "kind": 10520,
+        "content": "",
+        "tags": [
+          [
+            "a",
+            "15",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a"
+          ],
+          [
+            "a",
+            "01",
+            "fc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+          ],
+          [
+            "payout",
+            "pplns"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "miner_identity_non_hex_chain",
+      "assertion": "A5,A16",
+      "kind": 10520,
+      "expect": "reject",
+      "check": "identity_chain_hex",
+      "reason": "chain ID 'xz' is not a valid hex string.",
+      "event": {
+        "kind": 10520,
+        "content": "",
+        "tags": [
+          [
+            "a",
+            "xz",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "miner_identity_duplicate_chain",
+      "assertion": "A5",
+      "kind": 10520,
+      "expect": "reject",
+      "check": "identity_chain_dup",
+      "reason": "chain ID '15' repeats within one event.",
+      "event": {
+        "kind": 10520,
+        "content": "",
+        "tags": [
+          [
+            "a",
+            "15",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a"
+          ],
+          [
+            "a",
+            "15",
+            "fc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "valid_pool_identity",
+      "assertion": "A6",
+      "kind": 10521,
+      "expect": "accept",
+      "check": "pool_pplns_n",
+      "reason": "4-element a tag, non-negative fee, pplns carries n:.",
+      "event": {
+        "kind": 10521,
+        "content": "{\"name\":\"DeltaPool\",\"about\":\"PPS or PPLNS\"}",
+        "tags": [
+          [
+            "a",
+            "15",
+            "fc1qpooldelta00000000000000000000000000000q",
+            "150"
+          ],
+          [
+            "payout",
+            "pplns",
+            "fee:150",
+            "n:5000"
+          ],
+          [
+            "sharenote",
+            "30z00"
+          ],
+          [
+            "threshold",
+            "15",
+            "100000"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "pool_identity_pplns_missing_n",
+      "assertion": "A6",
+      "kind": 10521,
+      "expect": "reject",
+      "check": "pool_pplns_n",
+      "reason": "a pplns payout tag MUST include n:<window_size>.",
+      "event": {
+        "kind": 10521,
+        "content": "{\"name\":\"DeltaPool\",\"about\":\"PPS or PPLNS\"}",
+        "tags": [
+          [
+            "a",
+            "15",
+            "fc1qpooldelta00000000000000000000000000000q",
+            "150"
+          ],
+          [
+            "payout",
+            "pplns",
+            "fee:150"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "valid_telemetry",
+      "assertion": "A15",
+      "kind": 35502,
+      "expect": "accept",
+      "check": "telemetry_all_xor_h",
+      "reason": "exactly one a tag and exactly one of all/h; each worker carries h:.",
+      "event": {
+        "kind": 35502,
+        "content": "",
+        "tags": [
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a"
+          ],
+          [
+            "all",
+            "480000000000",
+            "msn:34Z10"
+          ],
+          [
+            "w:rig-01",
+            "h:240000000000",
+            "sn:30Z00",
+            "msn:34Z12",
+            "csn:1842"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "telemetry_neither_all_nor_h",
+      "assertion": "A15",
+      "kind": 35502,
+      "expect": "reject",
+      "check": "telemetry_all_xor_h",
+      "reason": "neither all nor h is present; exactly one is REQUIRED.",
+      "event": {
+        "kind": 35502,
+        "content": "",
+        "tags": [
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a"
+          ],
+          [
+            "w:rig-01",
+            "h:240000000000",
+            "csn:1842"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "telemetry_both_all_and_h",
+      "assertion": "A15",
+      "kind": 35502,
+      "expect": "reject",
+      "check": "telemetry_all_xor_h",
+      "reason": "both all and h are present; exactly one is allowed.",
+      "event": {
+        "kind": 35502,
+        "content": "",
+        "tags": [
+          [
+            "a",
+            "fc1q0vw9cmzqqc3vxfhd7m4zcqf8n82s9gsmagr02a"
+          ],
+          [
+            "all",
+            "480000000000",
+            "msn:34Z10"
+          ],
+          [
+            "h",
+            "240000000000",
+            "msn:34Z08"
+          ]
+        ]
+      }
+    }
+  ]
+}
